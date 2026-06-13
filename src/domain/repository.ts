@@ -260,6 +260,7 @@ export class Repository {
       source: EvidenceSource;
       repo?: string;
       commitSha?: string;
+      url?: string;
       files?: string[];
       content: string;
     },
@@ -270,19 +271,21 @@ export class Repository {
       source: evidence.source,
       repo: evidence.repo,
       commitSha: evidence.commitSha,
+      url: evidence.url,
       files: evidence.files ?? [],
       content: evidence.content,
       createdAt: new Date().toISOString(),
     };
     this.db
       .prepare(
-        `INSERT INTO source_evidence (id, card_id, source, repo, commit_sha, files, content, created_at)
-         VALUES (@id, @cardId, @source, @repo, @commitSha, @files, @content, @createdAt)`,
+        `INSERT INTO source_evidence (id, card_id, source, repo, commit_sha, url, files, content, created_at)
+         VALUES (@id, @cardId, @source, @repo, @commitSha, @url, @files, @content, @createdAt)`,
       )
       .run({
         ...row,
         repo: row.repo ?? null,
         commitSha: row.commitSha ?? null,
+        url: row.url ?? null,
         files: JSON.stringify(row.files),
       });
     return row;

@@ -37,6 +37,35 @@ describe("MCP tool handlers", () => {
     expect(ev?.content).not.toContain("secret123456");
   });
 
+  it("draft_context_card links GitHub evidence onto the draft", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const draft = makeDraftContextCardHandler(repo);
+
+    const res = await draft({
+      source: "diff",
+      repo: "junseo2323/claudexHub",
+      commit_sha: "a1b2c3d4e5",
+      problem_summary: "Team card access bug",
+      content: "Resolved in PR #5 after the failing issue #9 reproduction.",
+      verified_fix: ["gate team cards by membership"],
+    });
+    const out = parse(res);
+    const card = repo.getCard(out.id);
+    expect(card?.sourceLinks).toEqual([
+      "https://github.com/junseo2323/claudexHub/commit/a1b2c3d4e5",
+      "https://github.com/junseo2323/claudexHub/pull/5",
+      "https://github.com/junseo2323/claudexHub/issues/9",
+    ]);
+    expect(out.extraction_report.githubReferences).toHaveLength(3);
+
+    const ev = db.prepare("SELECT url, commit_sha FROM source_evidence WHERE card_id = ?").get(out.id) as
+      | { url: string; commit_sha: string }
+      | undefined;
+    expect(ev?.url).toBe("https://github.com/junseo2323/claudexHub/commit/a1b2c3d4e5");
+    expect(ev?.commit_sha).toBe("a1b2c3d4e5");
+  });
+
   it("publish blocks when secrets remain in the card", async () => {
     db = freshDb();
     const repo = new Repository(db);

@@ -26,6 +26,18 @@ function readSchemaSql(): string {
 export function migrate(db: DB = getDb(), embedDim: number = config.embedDim): void {
   const sql = readSchemaSql().replaceAll("__EMBED_DIM__", String(embedDim));
   db.exec(sql);
+  migrateColumns(db);
+}
+
+function hasColumn(db: DB, table: string, column: string): boolean {
+  const rows = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  return rows.some((row) => row.name === column);
+}
+
+function migrateColumns(db: DB): void {
+  if (!hasColumn(db, "source_evidence", "url")) {
+    db.exec("ALTER TABLE source_evidence ADD COLUMN url TEXT");
+  }
 }
 
 // Allow `npm run migrate`.

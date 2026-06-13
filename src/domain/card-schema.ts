@@ -8,7 +8,17 @@ export const cardStatusSchema = z.enum([
   "stale",
   "deprecated",
 ]);
-export const evidenceSourceSchema = z.enum(["worklog", "diff", "conversation", "manual"]);
+export const evidenceSourceSchema = z.enum([
+  "worklog",
+  "diff",
+  "conversation",
+  "manual",
+  "commit",
+  "pr",
+  "issue",
+  "test",
+  "official_doc",
+]);
 
 export const environmentSchema = z
   .object({

@@ -1,6 +1,15 @@
 export type Visibility = "public" | "private" | "team";
 export type CardStatus = "draft" | "approved" | "published" | "stale" | "deprecated";
-export type EvidenceSource = "worklog" | "diff" | "conversation" | "manual";
+export type EvidenceSource =
+  | "worklog"
+  | "diff"
+  | "conversation"
+  | "manual"
+  | "commit"
+  | "pr"
+  | "issue"
+  | "test"
+  | "official_doc";
 export type AgentName = "claude_code" | "codex" | "cursor" | "other";
 export type UsageOutcome = "success" | "partial" | "failed";
 
@@ -54,6 +63,7 @@ export interface SourceEvidence {
   source: EvidenceSource;
   repo?: string;
   commitSha?: string;
+  url?: string;
   files: string[];
   content: string;
   createdAt: string;

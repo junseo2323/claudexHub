@@ -148,7 +148,7 @@ export async function createDraftForUser(
     verifiedFix: input.verifiedFix?.length ? input.verifiedFix : extracted.verifiedFix,
     verification: [],
     agentHint: "",
-    sourceLinks: [],
+    sourceLinks: extracted.sourceLinks,
     visibility: "private",
     status: "draft",
   });
@@ -158,7 +158,7 @@ export async function createDraftForUser(
   if (input.content) {
     const { redact } = await import("../../src/domain/redaction.js");
     const { redacted: safeContent } = redact(input.content);
-    repo.addEvidence(created.id, { source: "manual", content: safeContent });
+    repo.addEvidence(created.id, { source: "manual", url: extracted.sourceLinks[0], content: safeContent });
   }
   return { card: created, redaction: report };
 }

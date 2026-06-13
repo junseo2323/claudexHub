@@ -33,9 +33,10 @@ CREATE INDEX IF NOT EXISTS idx_cards_visibility ON context_cards(visibility);
 CREATE TABLE IF NOT EXISTS source_evidence (
   id TEXT PRIMARY KEY,
   card_id TEXT NOT NULL REFERENCES context_cards(id) ON DELETE CASCADE,
-  source TEXT NOT NULL,       -- worklog | diff | conversation | manual
+  source TEXT NOT NULL,       -- worklog | diff | conversation | manual | commit | pr | issue | test | official_doc
   repo TEXT,
   commit_sha TEXT,
+  url TEXT,
   files TEXT,                 -- JSON string[]
   content TEXT,               -- REDACTED raw evidence
   created_at TEXT NOT NULL

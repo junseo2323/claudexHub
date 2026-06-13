@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractDraft } from "../src/domain/extraction.js";
+import { extractDraft, extractGitHubReferences, normalizeGitHubRepo } from "../src/domain/extraction.js";
 
 describe("extractDraft", () => {
   it("detects stacks and maps them to environment slots", () => {
@@ -62,6 +62,36 @@ describe("extractDraft", () => {
   it("finds a commit sha near the word commit", () => {
     const d = extractDraft({ content: "Resolved in commit a1b2c3d4e5 on main" });
     expect(d.report.commitSha).toBe("a1b2c3d4e5");
+  });
+
+  it("normalizes GitHub repo hints", () => {
+    expect(normalizeGitHubRepo("junseo2323/claudexHub")).toBe("junseo2323/claudexHub");
+    expect(normalizeGitHubRepo("https://github.com/junseo2323/claudexHub.git")).toBe("junseo2323/claudexHub");
+    expect(normalizeGitHubRepo("git@github.com:junseo2323/claudexHub.git")).toBe("junseo2323/claudexHub");
+  });
+
+  it("extracts GitHub commit, pull request, and issue source links", () => {
+    const refs = extractGitHubReferences(
+      [
+        "Fixed by https://github.com/junseo2323/claudexHub/commit/a1b2c3d4e5f6",
+        "Follow-up PR #5 and issue #9",
+      ].join("\n"),
+      { repo: "junseo2323/claudexHub" },
+    );
+    expect(refs.map((r) => r.type)).toEqual(["commit", "pull_request", "issue"]);
+    expect(refs[0].url).toBe("https://github.com/junseo2323/claudexHub/commit/a1b2c3d4e5f6");
+    expect(refs[1].url).toBe("https://github.com/junseo2323/claudexHub/pull/5");
+    expect(refs[2].url).toBe("https://github.com/junseo2323/claudexHub/issues/9");
+  });
+
+  it("turns repo and commit hints into source links", () => {
+    const d = extractDraft({
+      repo: "junseo2323/claudexHub",
+      commitSha: "a1b2c3d4e5",
+      content: "Resolved by the final diff",
+    });
+    expect(d.sourceLinks).toContain("https://github.com/junseo2323/claudexHub/commit/a1b2c3d4e5");
+    expect(d.report.githubReferences[0].commitSha).toBe("a1b2c3d4e5");
   });
 
   it("derives a title and falls back gracefully with no content", () => {

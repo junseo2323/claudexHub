@@ -7,11 +7,12 @@ import type { CardInput } from "../../domain/card-schema.js";
 
 export const draftContextCardSchema = {
   source: z
-    .enum(["worklog", "diff", "conversation", "manual"])
+    .enum(["worklog", "diff", "conversation", "manual", "commit", "pr", "issue", "test", "official_doc"])
     .describe("Where the evidence comes from"),
   repo: z.string().optional(),
   files: z.array(z.string()).optional(),
   commit_sha: z.string().optional(),
+  source_links: z.array(z.string()).optional().describe("Source URLs such as commits, PRs, issues, docs, or CI logs"),
   problem_summary: z.string().optional().describe("Short description of the problem"),
   title: z.string().optional().describe("Card title; derived from problem_summary if omitted"),
   content: z.string().optional().describe("Raw evidence: diff, logs, or conversation excerpt"),
@@ -46,7 +47,10 @@ export function makeDraftContextCardHandler(repo: Repository) {
       problemSummary: args.problem_summary,
       content: args.content,
       environment: args.environment,
+      repo: args.repo,
+      commitSha: args.commit_sha,
     });
+    const sourceLinks = [...new Set([...(args.source_links ?? []), ...extracted.sourceLinks])];
 
     const rawInput: CardInput = {
       title: args.title ?? extracted.title,
@@ -58,7 +62,7 @@ export function makeDraftContextCardHandler(repo: Repository) {
       verifiedFix: args.verified_fix ?? extracted.verifiedFix,
       verification: args.verification ?? [],
       agentHint: args.agent_hint ?? "",
-      sourceLinks: [],
+      sourceLinks,
       visibility: "private",
       status: "draft",
     };
@@ -77,6 +81,7 @@ export function makeDraftContextCardHandler(repo: Repository) {
         source: args.source,
         repo: args.repo,
         commitSha: args.commit_sha ?? extracted.report.commitSha,
+        url: sourceLinks[0],
         files: args.files,
         content: redacted,
       });

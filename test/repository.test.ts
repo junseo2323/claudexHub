@@ -58,6 +58,30 @@ describe("Repository", () => {
     expect(fts.c).toBe(0);
   });
 
+  it("stores structured source evidence URLs", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const card = await repo.createCard(sampleInput());
+    repo.addEvidence(card.id, {
+      source: "commit",
+      repo: "junseo2323/claudexHub",
+      commitSha: "a1b2c3d4e5",
+      url: "https://github.com/junseo2323/claudexHub/commit/a1b2c3d4e5",
+      content: "redacted diff",
+    });
+
+    const ev = db.prepare("SELECT source, repo, commit_sha, url FROM source_evidence WHERE card_id = ?").get(card.id) as {
+      source: string;
+      repo: string;
+      commit_sha: string;
+      url: string;
+    };
+    expect(ev.source).toBe("commit");
+    expect(ev.repo).toBe("junseo2323/claudexHub");
+    expect(ev.commit_sha).toBe("a1b2c3d4e5");
+    expect(ev.url).toContain("/commit/a1b2c3d4e5");
+  });
+
   it("listCards excludes drafts by default", async () => {
     db = freshDb();
     const repo = new Repository(db);
