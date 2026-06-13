@@ -1,4 +1,4 @@
-import { getCalibration, getStats } from "../lib/hub";
+import { getCalibration, getStats, getReverificationCount } from "../lib/hub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -10,6 +10,7 @@ function pct(n: number | null) {
 export default function InsightsPage() {
   const buckets = getCalibration();
   const stats = getStats();
+  const needsReverify = getReverificationCount();
   const maxRate = Math.max(0.01, ...buckets.map((b) => b.successRate ?? 0));
 
   return (
@@ -55,7 +56,8 @@ export default function InsightsPage() {
       <p className="subtle" style={{ marginTop: 14 }}>
         Hub-wide: {pct(stats.reuseSuccessRate)} reuse success across{" "}
         {stats.successfulReuseCount + stats.failedReuseCount} recorded reuses ·{" "}
-        {stats.verifiedFixCount} verified fixes.
+        {stats.verifiedFixCount} verified fixes ·{" "}
+        {needsReverify} card{needsReverify === 1 ? "" : "s"} may need re-verification.
       </p>
     </>
   );
