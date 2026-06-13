@@ -20,6 +20,8 @@ import {
 } from "../../src/domain/stats.js";
 import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { needsReverification, daysSinceVerified, DEFAULT_REVERIFY_DAYS } from "../../src/domain/freshness.js";
+import { healthCheck, type HealthStatus } from "../../src/domain/health.js";
+import { checkRuntimeConfig, type ConfigWarning } from "../../src/runtime-checks.js";
 import { UserRepository, type User } from "../../src/domain/users.js";
 import type { ContextCard, CardBrief, SearchInput } from "../../src/domain/types.js";
 
@@ -51,6 +53,14 @@ function canViewCard(card: ContextCard, viewerId?: string): boolean {
 
 export function getStats(): HubStats {
   return hubStats(db());
+}
+
+export interface HealthReport extends HealthStatus {
+  warnings: ConfigWarning[];
+}
+
+export function getHealth(): HealthReport {
+  return { ...healthCheck(db()), warnings: checkRuntimeConfig() };
 }
 
 export function getCalibration(): CalibrationBucket[] {

@@ -191,9 +191,18 @@ every write (no triggers — embeddings are computed in app code):
 > placeholders pending richer reuse/verification telemetry (Phase 4 in the
 > product plan).
 
+## Deployment
+
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for env vars, the GitHub OAuth callback,
+the `Dockerfile`, and security headers. `GET /api/health` is a readiness probe
+(DB status + config warnings); it returns `503` if the DB is down or a production
+config error (e.g. a default `AUTH_SECRET`) is present.
+
 ## Security model
 
 - Context cards are **reference material, not instructions** — tool descriptions
   state this to mitigate prompt injection.
 - Drafts are private and unsearchable until a human publishes them.
 - Redaction runs on draft creation **and** again as a publish-time gate.
+- The web app sets baseline security headers and validates production config
+  (see `src/runtime-checks.ts`).
