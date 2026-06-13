@@ -25,12 +25,23 @@ function daysSince(iso?: string): number {
   return (Date.now() - new Date(iso).getTime()) / (1000 * 60 * 60 * 24);
 }
 
+export interface ConfidenceBreakdown {
+  sourceQuality: number;
+  verification: number;
+  recency: number;
+  reuse: number;
+  failedPenalty: number;
+  stalePenalty: number;
+  /** Final clamped score, 0-100. */
+  total: number;
+}
+
 /**
- * Intrinsic card confidence (0-100). Phase 1 heuristic — provisional until real
- * verification/reuse telemetry exists. Distinct from search-time relevance
- * confidence (see search.ts), which additionally blends query match.
+ * Explainable confidence breakdown. Components are on a 0-1 scale and summed,
+ * then clamped to 0-100. Phase 1 heuristic — provisional until richer
+ * verification/evidence telemetry exists.
  */
-export function computeConfidence(card: ContextCard): number {
+export function confidenceBreakdown(card: ContextCard): ConfidenceBreakdown {
   let sourceQuality = 0;
   if (card.verifiedFix.length > 0) sourceQuality += 0.4;
   if (card.sourceLinks.length > 0) sourceQuality += 0.1;
@@ -45,8 +56,22 @@ export function computeConfidence(card: ContextCard): number {
   const totalReuse = card.successfulReuseCount + card.failedReuseCount;
   const reuse = totalReuse > 0 ? (card.successfulReuseCount / totalReuse) * 0.1 : 0;
 
-  const score = sourceQuality + verification + recency + reuse;
-  return Math.round(Math.min(Math.max(score, 0), 1) * 100);
+  // Penalties: each failed reuse erodes trust; stale/deprecated status sharply
+  // reduces confidence so such cards fall to the bottom (and read as high risk).
+  const failedPenalty = Math.min(card.failedReuseCount * 0.05, 0.3);
+  const stalePenalty = card.status === "deprecated" ? 0.6 : card.status === "stale" ? 0.4 : 0;
+
+  const raw = sourceQuality + verification + recency + reuse - failedPenalty - stalePenalty;
+  const total = Math.round(Math.min(Math.max(raw, 0), 1) * 100);
+  return { sourceQuality, verification, recency, reuse, failedPenalty, stalePenalty, total };
+}
+
+/**
+ * Intrinsic card confidence (0-100). Distinct from search-time relevance
+ * confidence (see search.ts), which additionally blends query match.
+ */
+export function computeConfidence(card: ContextCard): number {
+  return confidenceBreakdown(card).total;
 }
 
 /**

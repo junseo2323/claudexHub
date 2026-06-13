@@ -63,6 +63,7 @@ npm run cli -- create --json ./card.json
 npm run cli -- publish <card_id> --visibility public
 npm run cli -- feedback <card_id> --outcome success --before 12000 --after 2000
 npm run cli -- stale <card_id> --reason "Next.js 16 changed defaults" --versions "Next.js 16"
+npm run cli -- stats                 # trust + reuse statistics (add --json for raw)
 npm run cli -- reindex
 ```
 
@@ -117,9 +118,22 @@ every write (no triggers — embeddings are computed in app code):
 - `context_cards_fts` — FTS5 keyword index.
 - `context_cards_vec` — sqlite-vec `vec0` cosine vector index.
 
-> **Note on Phase 1 heuristics:** confidence scoring, the `estimatedTokensSaved`
-> multiplier, and search fusion weights are provisional placeholders pending
-> real reuse/verification telemetry (Phase 4 in the product plan).
+### Trust & statistics
+
+- **Card confidence** (`src/domain/scoring.ts`) — an explainable breakdown of
+  source quality, verification, recency, and reuse success, minus penalties for
+  failed reuse and stale/deprecated status. `confidenceBreakdown()` exposes the
+  components; `computeConfidence()` returns the clamped 0-100 score.
+- **Hub stats** (`src/domain/stats.ts`) — aggregates over cards and the
+  `agent_usage` ledger: verified fixes, realized tokens saved, reuse success
+  rate, stale/commit/evidence ratios, top stacks, per-agent breakdown, and a
+  **reputation score** (the spec's leaderboard Rank Score). View with
+  `npm run cli -- stats`.
+
+> **Note on Phase 1 heuristics:** the `estimatedTokensSaved` baseline multiplier,
+> search fusion weights, and confidence component weights are provisional
+> placeholders pending richer reuse/verification telemetry (Phase 4 in the
+> product plan).
 
 ## Security model
 

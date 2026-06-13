@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { computeConfidence, estimateTokens, estimateTokensSaved } from "../src/domain/scoring.js";
+import {
+  computeConfidence,
+  confidenceBreakdown,
+  estimateTokens,
+  estimateTokensSaved,
+} from "../src/domain/scoring.js";
 import type { ContextCard } from "../src/domain/types.js";
 
 function card(overrides: Partial<ContextCard> = {}): ContextCard {
@@ -48,6 +53,30 @@ describe("scoring", () => {
     );
     expect(v).toBeGreaterThanOrEqual(0);
     expect(v).toBeLessThanOrEqual(100);
+  });
+
+  it("failed reuse and stale status penalize confidence", () => {
+    const base = card({ verifiedFix: ["fix"], verification: ["ok"], lastVerifiedAt: new Date().toISOString() });
+    const baseScore = computeConfidence(base);
+
+    const failed = computeConfidence({ ...base, failedReuseCount: 3 });
+    expect(failed).toBeLessThan(baseScore);
+
+    const stale = computeConfidence({ ...base, status: "stale" });
+    expect(stale).toBeLessThan(baseScore);
+
+    const deprecated = computeConfidence({ ...base, status: "deprecated" });
+    expect(deprecated).toBeLessThanOrEqual(stale);
+  });
+
+  it("breakdown components sum into the clamped total", () => {
+    const b = confidenceBreakdown(
+      card({ verifiedFix: ["f"], verification: ["v"], failedReuseCount: 5, status: "stale" }),
+    );
+    expect(b.failedPenalty).toBeGreaterThan(0);
+    expect(b.stalePenalty).toBeGreaterThan(0);
+    expect(b.total).toBeGreaterThanOrEqual(0);
+    expect(b.total).toBeLessThanOrEqual(100);
   });
 
   it("estimateTokens ~ chars/4", () => {

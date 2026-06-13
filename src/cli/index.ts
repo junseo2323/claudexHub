@@ -5,6 +5,7 @@ import { migrate } from "../db/migrate.js";
 import { Repository } from "../domain/repository.js";
 import { SearchService } from "../domain/search.js";
 import { cardInputSchema } from "../domain/card-schema.js";
+import { hubStats } from "../domain/stats.js";
 import { config } from "../config.js";
 
 function repo(): Repository {
@@ -123,6 +124,37 @@ program
       opts.versions ? opts.versions.split(",").map((v) => v.trim()) : undefined,
     );
     console.log(`Marked ${card.id} as ${card.status}`);
+  });
+
+program
+  .command("stats")
+  .description("Show hub trust + reuse statistics")
+  .option("--json", "Output raw JSON")
+  .action((opts: { json?: boolean }) => {
+    const db = getDb();
+    migrate(db);
+    const s = hubStats(db);
+    if (opts.json) {
+      console.log(JSON.stringify(s, null, 2));
+      return;
+    }
+    const pct = (n: number) => `${Math.round(n * 100)}%`;
+    console.log("=== AI Agent Context Hub — Stats ===");
+    console.log(`Cards: ${s.cardsTotal} total · ${s.cardsPublished} published · ${s.cardsDraft} draft · ${s.cardsStale} stale`);
+    console.log(`Verified fixes: ${s.verifiedFixCount}`);
+    console.log(`Reuse: ${s.successfulReuseCount} ok / ${s.failedReuseCount} failed (${pct(s.reuseSuccessRate)} success)`);
+    console.log(`Tokens saved (realized): ${s.totalEstimatedTokensSaved.toLocaleString()}`);
+    console.log(`Commit-linked: ${pct(s.commitLinkedRatio)} · Evidence-linked: ${pct(s.evidenceLinkedRatio)} · Stale ratio: ${pct(s.staleCardRatio)}`);
+    console.log(`Reputation score: ${s.reputationScore}`);
+    if (s.topStacks.length) {
+      console.log("Top stacks: " + s.topStacks.map((t) => `${t.stack}(${t.count})`).join(", "));
+    }
+    if (s.agentBreakdown.length) {
+      console.log("Agents:");
+      for (const a of s.agentBreakdown) {
+        console.log(`  ${a.agent}: ${a.uses} uses, ${a.successes} ok / ${a.failures} failed, ${a.tokensSaved.toLocaleString()} tokens saved`);
+      }
+    }
   });
 
 program
