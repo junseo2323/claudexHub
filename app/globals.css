@@ -376,3 +376,19 @@ th {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.stale-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.stale-form input[type="text"] {
+  flex: 1;
+  min-width: 240px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 14px;
+}

@@ -170,4 +170,47 @@ export function scanCard(card: ContextCard): RedactionReport {
   return redactCard(card).report;
 }
 
+/** A card the given user may edit (they authored it). Undefined otherwise. */
+export function getEditableCardForUser(cardId: string, userId: string): ContextCard | undefined {
+  const card = new Repository(db()).getCard(cardId);
+  if (!card) return undefined;
+  if (new UserRepository(db()).getCardAuthorId(cardId) !== userId) return undefined;
+  return card;
+}
+
+export interface EditCardFields {
+  title: string;
+  problem: string;
+  environment: Record<string, string>;
+  symptoms: string[];
+  likelyCauses: string[];
+  failedAttempts: string[];
+  verifiedFix: string[];
+  verification: string[];
+  agentHint: string;
+}
+
+/** Update an authored card; fields are redacted before saving (re-scores + re-embeds). */
+export async function updateCardForUser(
+  cardId: string,
+  userId: string,
+  fields: EditCardFields,
+): Promise<{ card: ContextCard; redaction: RedactionReport }> {
+  if (!getEditableCardForUser(cardId, userId)) throw new Error("not_editable");
+  const { card: patch, report } = redactCard(fields as Partial<ContextCard>);
+  const updated = await new Repository(db()).updateCard(cardId, patch);
+  return { card: updated, redaction: report };
+}
+
+/** Mark an authored card stale (no longer trusted). */
+export async function markCardStaleForUser(
+  cardId: string,
+  userId: string,
+  reason: string,
+  affectedVersions?: string[],
+): Promise<ContextCard> {
+  if (!getEditableCardForUser(cardId, userId)) throw new Error("not_editable");
+  return new Repository(db()).markStale(cardId, reason, affectedVersions);
+}
+
 export type { HubStats, ContextCard, CardBrief, UserSummary, User };

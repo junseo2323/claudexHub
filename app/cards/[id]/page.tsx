@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicCard, getAuthorId, getUser } from "../../lib/hub";
+import { getCurrentUser } from "../../lib/auth";
+import { markStaleAction } from "../../lib/actions";
 import { Avatar, EnvChips, RiskBadge, riskFromConfidence } from "../../components";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,8 @@ export default async function CardDetail({ params }: { params: Promise<{ id: str
 
   const authorId = getAuthorId(card.id);
   const author = authorId ? getUser(authorId) : undefined;
+  const me = await getCurrentUser();
+  const isOwner = !!me && me.id === authorId;
   const stale = card.status === "stale" || card.status === "deprecated";
 
   return (
@@ -106,6 +110,26 @@ export default async function CardDetail({ params }: { params: Promise<{ id: str
         Est. tokens saved per reuse: {card.estimatedTokensSaved.toLocaleString()} · Updated{" "}
         {new Date(card.updatedAt).toLocaleDateString()}
       </div>
+
+      {isOwner && (
+        <div className="section panel">
+          <h3 style={{ marginTop: 0 }}>Author actions</h3>
+          <div className="meta" style={{ marginBottom: stale ? 0 : 14 }}>
+            <Link href={`/cards/${card.id}/edit`} className="btn secondary">
+              Edit card
+            </Link>
+          </div>
+          {!stale && (
+            <form action={markStaleAction} className="stale-form">
+              <input type="hidden" name="cardId" value={card.id} />
+              <input type="text" name="reason" placeholder="Why is this stale? (e.g. Next.js 16 changed defaults)" />
+              <button type="submit" className="btn secondary">
+                Mark stale
+              </button>
+            </form>
+          )}
+        </div>
+      )}
     </>
   );
 }

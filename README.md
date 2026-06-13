@@ -108,6 +108,8 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 - **Authoring** (`/new`, `/drafts`, `/drafts/[id]`) — a signed-in user drafts a card
   (secrets auto-redacted, fields auto-extracted), reviews it privately, and
   publishes it through a secret-scan approval gate.
+- **Card management** (`/cards/[id]/edit`) — the author can edit a card (re-redacted
+  and re-scored on save) or mark it stale; owner-gated.
 
 ### Authentication
 
