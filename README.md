@@ -20,7 +20,7 @@ plug into Claude Code.
   card is stored or published.
 - **Human approval**: agents create *drafts*; publishing requires an explicit
   approval step.
-- A **dev CLI** and **seed data** (10 example cards).
+- A **dev CLI** and **seed data** (20 example cards).
 
 ## MCP tools
 
@@ -28,7 +28,7 @@ plug into Claude Code.
 | --- | --- |
 | `search_context` | Hybrid search → **brief** results only (id, title, confidence, tokens_estimate, match_reason, fix_summary, risk). |
 | `get_context_card` | Fetch one card; `mode` = `brief` \| `full` \| `agent_json` (compact, agent-optimized). |
-| `draft_context_card` | Create a redacted **draft** from a solved problem (worklog/diff/conversation). |
+| `draft_context_card` | Create a redacted **draft** from a solved problem; auto-extracts stacks, symptoms, failed attempts, fix, and commit sha from raw logs/diffs (heuristic, no LLM). |
 | `publish_context_card` | Publish a draft after `approve=true`; re-scans for secrets and blocks if any remain. |
 | `record_feedback` | Record reuse outcome (success/partial/failed); updates reuse counts, accumulated tokens saved, and confidence. |
 | `mark_stale` | Mark a card stale when its fix is outdated/wrong; stale cards drop out of search. |
@@ -39,7 +39,7 @@ plug into Claude Code.
 npm install
 cp .env.example .env          # adjust EMBEDDING_PROVIDER / HUB_DB_PATH if needed
 npm run migrate               # create the SQLite schema
-npm run seed                  # load 10 example cards
+npm run seed                  # load 20 example cards
 ```
 
 ### Embedding providers

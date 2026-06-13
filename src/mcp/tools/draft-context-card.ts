@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Repository } from "../../domain/repository.js";
 import { redactCard, redact, mergeReports, reportFromFindings } from "../../domain/redaction.js";
 import { buildBrief } from "../../domain/brief.js";
+import { extractDraft } from "../../domain/extraction.js";
 import type { CardInput } from "../../domain/card-schema.js";
 
 export const draftContextCardSchema = {
@@ -39,15 +40,22 @@ export function makeDraftContextCardHandler(repo: Repository) {
       };
     }
 
-    // Phase 1: heuristic extraction only — no LLM. Human edits the rest later.
+    // Phase 1: deterministic heuristic extraction — no LLM. Explicit args always
+    // win over inferred values; the human edits the rest before publishing.
+    const extracted = extractDraft({
+      problemSummary: args.problem_summary,
+      content: args.content,
+      environment: args.environment,
+    });
+
     const rawInput: CardInput = {
-      title: args.title ?? problem.split("\n")[0].slice(0, 100),
+      title: args.title ?? extracted.title,
       problem,
-      environment: args.environment ?? {},
-      symptoms: args.symptoms ?? [],
+      environment: extracted.environment,
+      symptoms: args.symptoms ?? extracted.symptoms,
       likelyCauses: args.likely_causes ?? [],
-      failedAttempts: [],
-      verifiedFix: args.verified_fix ?? [],
+      failedAttempts: extracted.failedAttempts,
+      verifiedFix: args.verified_fix ?? extracted.verifiedFix,
       verification: args.verification ?? [],
       agentHint: args.agent_hint ?? "",
       sourceLinks: [],
@@ -68,7 +76,7 @@ export function makeDraftContextCardHandler(repo: Repository) {
       repo.addEvidence(created.id, {
         source: args.source,
         repo: args.repo,
-        commitSha: args.commit_sha,
+        commitSha: args.commit_sha ?? extracted.report.commitSha,
         files: args.files,
         content: redacted,
       });
@@ -82,6 +90,7 @@ export function makeDraftContextCardHandler(repo: Repository) {
             id: created.id,
             status: created.status,
             redaction_report: report,
+            extraction_report: extracted.report,
             card_brief: buildBrief(created, created.confidenceScore),
           }),
         },
