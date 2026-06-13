@@ -339,3 +339,69 @@ export function teamStats(db: DB, teamId: string): TeamStats | undefined {
   members.sort((a, b) => b.reputationScore - a.reputationScore);
   return { team, members, totals };
 }
+
+export interface CalibrationBucket {
+  label: string;
+  minConfidence: number;
+  maxConfidence: number;
+  cards: number;
+  /** Reuse events (success + partial + failed) recorded on cards in this bucket. */
+  reuseEvents: number;
+  /** Observed reuse success rate, or null when there's no reuse to judge by. */
+  successRate: number | null;
+  avgConfidence: number;
+}
+
+/**
+ * Confidence calibration: how each confidence band's *observed* reuse success
+ * rate compares to its score. A well-calibrated hub shows success rate rising
+ * with confidence. Phase 4 telemetry over the agent_usage ledger.
+ */
+export function confidenceCalibration(db: DB): CalibrationBucket[] {
+  const cards = new Repository(db).listCards().filter((c) => c.status === "published");
+
+  const usageRows = db.prepare("SELECT card_id, outcome FROM agent_usage").all() as {
+    card_id: string;
+    outcome: string;
+  }[];
+  const byCard = new Map<string, { s: number; f: number }>();
+  for (const r of usageRows) {
+    const e = byCard.get(r.card_id) ?? { s: 0, f: 0 };
+    if (r.outcome === "failed") e.f += 1;
+    else e.s += 1;
+    byCard.set(r.card_id, e);
+  }
+
+  const defs: [number, number, string][] = [
+    [0, 40, "0–39"],
+    [40, 60, "40–59"],
+    [60, 75, "60–74"],
+    [75, 90, "75–89"],
+    [90, 101, "90–100"],
+  ];
+  return defs.map(([min, max, label]) => {
+    const inBucket = cards.filter((c) => c.confidenceScore >= min && c.confidenceScore < max);
+    let s = 0;
+    let f = 0;
+    for (const c of inBucket) {
+      const e = byCard.get(c.id);
+      if (e) {
+        s += e.s;
+        f += e.f;
+      }
+    }
+    const total = s + f;
+    const avgConfidence = inBucket.length
+      ? Math.round(inBucket.reduce((a, c) => a + c.confidenceScore, 0) / inBucket.length)
+      : 0;
+    return {
+      label,
+      minConfidence: min,
+      maxConfidence: max - 1,
+      cards: inBucket.length,
+      reuseEvents: total,
+      successRate: total > 0 ? s / total : null,
+      avgConfidence,
+    };
+  });
+}

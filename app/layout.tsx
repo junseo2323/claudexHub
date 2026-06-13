@@ -23,6 +23,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <Link href="/cards">Cards</Link>
             <Link href="/search">Search</Link>
             <Link href="/leaderboard">Leaderboard</Link>
+            <Link href="/insights">Insights</Link>
             {user ? (
               <>
                 <Link href="/new">New</Link>
