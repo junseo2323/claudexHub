@@ -178,6 +178,9 @@ every write (no triggers — embeddings are computed in app code):
   rate, stale/commit/evidence ratios, top stacks, per-agent breakdown, and a
   **reputation score** (the spec's leaderboard Rank Score). View with
   `npm run cli -- stats`.
+- **Reuse-aware ranking** (`trackRecordFactor` in `src/domain/search.ts`) —
+  search relevance is multiplied by a bounded track-record factor so proven,
+  high-confidence cards outrank equally-matching but unproven ones (Phase 4).
 
 > **Note on Phase 1 heuristics:** the `estimatedTokensSaved` baseline multiplier,
 > search fusion weights, and confidence component weights are provisional

@@ -1,9 +1,35 @@
 import { describe, it, expect, afterEach } from "vitest";
 import type { DB } from "../src/db/connection.js";
+import type { ContextCard } from "../src/domain/types.js";
 import { Repository } from "../src/domain/repository.js";
-import { SearchService } from "../src/domain/search.js";
+import { SearchService, trackRecordFactor } from "../src/domain/search.js";
 import { cardInputSchema } from "../src/domain/card-schema.js";
 import { freshDb } from "./helpers.js";
+
+function card(over: Partial<ContextCard>): ContextCard {
+  return {
+    id: "c",
+    title: "t",
+    problem: "p",
+    environment: {},
+    symptoms: [],
+    likelyCauses: [],
+    failedAttempts: [],
+    verifiedFix: [],
+    verification: [],
+    agentHint: "",
+    sourceLinks: [],
+    visibility: "public",
+    status: "published",
+    confidenceScore: 50,
+    estimatedTokensSaved: 0,
+    successfulReuseCount: 0,
+    failedReuseCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...over,
+  };
+}
 
 async function seedThree(db: DB) {
   const repo = new Repository(db);
@@ -38,9 +64,62 @@ async function seedThree(db: DB) {
   );
 }
 
+describe("trackRecordFactor", () => {
+  it("is neutral with no signal, lifts proven cards, demotes poor ones", () => {
+    expect(trackRecordFactor(card({}))).toBeCloseTo(1, 5);
+
+    const proven = trackRecordFactor(
+      card({ confidenceScore: 90, successfulReuseCount: 4, failedReuseCount: 0 }),
+    );
+    const poor = trackRecordFactor(
+      card({ confidenceScore: 30, successfulReuseCount: 0, failedReuseCount: 4 }),
+    );
+    expect(proven).toBeGreaterThan(1);
+    expect(poor).toBeLessThan(1);
+    expect(proven).toBeGreaterThan(poor);
+  });
+
+  it("stays within bounds", () => {
+    const hi = trackRecordFactor(card({ confidenceScore: 100, successfulReuseCount: 50 }));
+    const lo = trackRecordFactor(card({ confidenceScore: 0, failedReuseCount: 50 }));
+    expect(hi).toBeLessThanOrEqual(1.25);
+    expect(lo).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it("weights more reuse evidence more heavily", () => {
+    const little = trackRecordFactor(card({ successfulReuseCount: 1 }));
+    const lots = trackRecordFactor(card({ successfulReuseCount: 9 }));
+    expect(lots).toBeGreaterThan(little);
+  });
+});
+
 describe("hybrid search", () => {
   let db: DB;
   afterEach(() => db?.close());
+
+  it("a proven card outranks an equally-matching untested one", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const base = {
+      problem: "kafka consumer rebalance storm causes duplicate processing",
+      verifiedFix: ["tune session.timeout.ms"],
+      status: "published" as const,
+      visibility: "public" as const,
+    };
+    const proven = await repo.createCard(
+      cardInputSchema.parse({ ...base, title: "Kafka rebalance storm duplicates A" }),
+    );
+    await repo.createCard(
+      cardInputSchema.parse({ ...base, title: "Kafka rebalance storm duplicates B" }),
+    );
+    // Give the first card a strong reuse track record.
+    for (let i = 0; i < 4; i++) {
+      await repo.recordUsage(proven.id, { agent: "codex", outcome: "success" });
+    }
+
+    const results = await new SearchService(db).search({ query: "kafka rebalance storm duplicate" });
+    expect(results[0].id).toBe(proven.id);
+  });
 
   it("ranks the relevant card first and returns brief shape", async () => {
     db = freshDb();
