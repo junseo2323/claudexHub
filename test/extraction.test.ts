@@ -43,6 +43,22 @@ describe("extractDraft", () => {
     expect(d.verifiedFix.some((f) => /SameSite/.test(f))).toBe(true);
   });
 
+  it("captures likely causes and keeps them out of symptoms", () => {
+    const d = extractDraft({
+      problemSummary: "auth fails",
+      content: [
+        "GET /me returns 401 Unauthorized",
+        "Root cause: the cookie was set with SameSite=Lax on a cross-site request",
+        "because the API is on a different subdomain",
+      ].join("\n"),
+    });
+    expect(d.likelyCauses.length).toBeGreaterThanOrEqual(2);
+    expect(d.likelyCauses.some((c) => /SameSite=Lax/.test(c))).toBe(true);
+    // The cause line must not also appear as a symptom.
+    expect(d.symptoms.some((s) => /Root cause/.test(s))).toBe(false);
+    expect(d.report.inferredFields).toContain("likelyCauses");
+  });
+
   it("finds a commit sha near the word commit", () => {
     const d = extractDraft({ content: "Resolved in commit a1b2c3d4e5 on main" });
     expect(d.report.commitSha).toBe("a1b2c3d4e5");

@@ -23,6 +23,20 @@ function tokenize(text: string): string[] {
   return (text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter((t) => t.length > 1);
 }
 
+/** Turn file paths into meaningful search tokens (basename, dirs; drop extension). */
+function fileTokens(files: string[]): string[] {
+  const tokens: string[] = [];
+  for (const f of files) {
+    const noExt = f.replace(/\.[a-z0-9]+$/i, "");
+    for (const part of noExt.split(/[\\/._-]+/)) {
+      const t = part.toLowerCase();
+      // Skip noise like 'src', 'index', single chars.
+      if (t.length > 2 && !["src", "lib", "index", "app", "dist"].includes(t)) tokens.push(t);
+    }
+  }
+  return [...new Set(tokens)];
+}
+
 interface Candidate {
   kwScore: number;
   vecScore: number;
@@ -37,10 +51,20 @@ export class SearchService {
 
   async search(input: SearchInput): Promise<CardBrief[]> {
     const limit = Math.min(Math.max(input.limit ?? 5, 1), 10);
-    const queryText = [input.query, input.error, (input.stack ?? []).join(" ")]
+    const fileHints = fileTokens(input.files ?? []);
+    const queryText = [input.query, input.error, (input.stack ?? []).join(" "), fileHints.join(" ")]
       .filter(Boolean)
       .join(" ");
     const queryTerms = new Set(tokenize(queryText));
+
+    // Cards backed by evidence from the same repo get a small relevance boost.
+    const repoCardIds = new Set<string>();
+    if (input.repo) {
+      const rows = this.db
+        .prepare("SELECT DISTINCT card_id FROM source_evidence WHERE repo = ?")
+        .all(input.repo) as { card_id: string }[];
+      for (const r of rows) repoCardIds.add(r.card_id);
+    }
 
     const candidates = new Map<string, Candidate>();
     const ensure = (id: string): Candidate => {
@@ -95,13 +119,16 @@ export class SearchService {
 
       let fused = config.keywordWeight * scores.kwScore + config.vectorWeight * scores.vecScore;
 
-      // Light env/stack/repo boost.
+      // Light env/stack boost.
       const envValues = Object.values(card.environment).filter(Boolean).join(" ").toLowerCase();
       const envMatches: string[] = [];
       for (const s of input.stack ?? []) {
         if (envValues.includes(s.toLowerCase())) envMatches.push(s);
       }
       if (envMatches.length) fused = Math.min(fused + 0.05, 1);
+
+      // Same-repo evidence boost.
+      if (repoCardIds.has(id)) fused = Math.min(fused + 0.05, 1);
 
       const cardTerms = new Set(tokenize(`${card.title} ${card.problem}`));
       const overlapTerms = [...queryTerms].filter((t) => cardTerms.has(t));
@@ -113,6 +140,7 @@ export class SearchService {
         overlapTerms,
         envMatches,
       };
+      if (input.minConfidence != null && confidence < input.minConfidence) continue;
       results.push(buildBrief(card, confidence, signals));
     }
 

@@ -70,4 +70,32 @@ describe("hybrid search", () => {
     const results = await search.search({ query: "cookie oauth cross-site draft" });
     expect(results.find((r) => r.title.includes("Draft only"))).toBeUndefined();
   });
+
+  it("min_confidence filters out low-confidence results", async () => {
+    db = freshDb();
+    await seedThree(db);
+    const search = new SearchService(db);
+    const all = await search.search({ query: "oauth cookie cross site" });
+    const filtered = await search.search({ query: "oauth cookie cross site", minConfidence: 100 });
+    expect(filtered.length).toBeLessThanOrEqual(all.length);
+    expect(filtered.every((r) => r.confidence >= 100)).toBe(true);
+  });
+
+  it("file path hints contribute to matching", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    await repo.createCard(
+      cardInputSchema.parse({
+        title: "Cookie helper bug",
+        problem: "credentials include missing in the auth cookie helper",
+        verifiedFix: ["add credentials: include"],
+        status: "published",
+        visibility: "public",
+      }),
+    );
+    const search = new SearchService(db);
+    // A vague query plus a telling file path should still surface the card.
+    const results = await search.search({ query: "request fails", files: ["src/auth/cookie.ts"] });
+    expect(results.find((r) => r.title === "Cookie helper bug")).toBeTruthy();
+  });
 });

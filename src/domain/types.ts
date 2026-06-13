@@ -77,4 +77,6 @@ export interface SearchInput {
   files?: string[];
   repo?: string;
   limit?: number;
+  /** Drop results below this confidence (0-100). */
+  minConfidence?: number;
 }

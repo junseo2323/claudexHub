@@ -57,18 +57,29 @@ program
   .description("Hybrid search")
   .option("--stack <stack>", "Comma-separated stack")
   .option("--error <error>")
+  .option("--files <files>", "Comma-separated file paths")
+  .option("--repo <repo>")
+  .option("--min-confidence <n>", "Drop results below this confidence")
   .option("--limit <n>", "Max results", "5")
-  .action(async (query: string, opts: { stack?: string; error?: string; limit: string }) => {
-    const search = new SearchService(getDb());
-    migrate(getDb());
-    const results = await search.search({
-      query,
-      stack: opts.stack ? opts.stack.split(",").map((s) => s.trim()) : undefined,
-      error: opts.error,
-      limit: Number(opts.limit),
-    });
-    console.log(JSON.stringify(results, null, 2));
-  });
+  .action(
+    async (
+      query: string,
+      opts: { stack?: string; error?: string; files?: string; repo?: string; minConfidence?: string; limit: string },
+    ) => {
+      migrate(getDb());
+      const search = new SearchService(getDb());
+      const results = await search.search({
+        query,
+        stack: opts.stack ? opts.stack.split(",").map((s) => s.trim()) : undefined,
+        error: opts.error,
+        files: opts.files ? opts.files.split(",").map((s) => s.trim()) : undefined,
+        repo: opts.repo,
+        minConfidence: opts.minConfidence ? Number(opts.minConfidence) : undefined,
+        limit: Number(opts.limit),
+      });
+      console.log(JSON.stringify(results, null, 2));
+    },
+  );
 
 program
   .command("publish <id>")

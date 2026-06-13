@@ -26,7 +26,7 @@ plug into Claude Code.
 
 | Tool | Purpose |
 | --- | --- |
-| `search_context` | Hybrid search → **brief** results only (id, title, confidence, tokens_estimate, match_reason, fix_summary, risk). |
+| `search_context` | Hybrid search → **brief** results only. Filters: `stack`, `error`, `files` (path hints feed matching), `repo` (boosts same-repo evidence), `min_confidence`. |
 | `get_context_card` | Fetch one card; `mode` = `brief` \| `full` \| `agent_json` (compact, agent-optimized). |
 | `draft_context_card` | Create a redacted **draft** from a solved problem; auto-extracts stacks, symptoms, failed attempts, fix, and commit sha from raw logs/diffs (heuristic, no LLM). |
 | `publish_context_card` | Publish a draft after `approve=true`; re-scans for secrets and blocks if any remain. |

@@ -17,6 +17,7 @@ export interface ExtractedDraft {
   problem: string;
   environment: Record<string, string>;
   symptoms: string[];
+  likelyCauses: string[];
   failedAttempts: string[];
   verifiedFix: string[];
   report: ExtractionReport;
@@ -59,6 +60,9 @@ const ERROR_SIGNALS =
 
 const FIX_MARKER = /^\s*(?:fix|fixed|solution|resolved|solved|works now|the fix)\s*[:\-]/i;
 const ATTEMPT_MARKER = /^\s*(?:tried|attempted|i tried|first i tried|we tried)\b/i;
+/** Phrases that introduce a root-cause explanation. */
+const CAUSE_MARKER =
+  /\b(?:because|caused by|due to|root cause|the (?:real )?(?:problem|issue|cause) (?:is|was)|turns out|it was)\b/i;
 
 function lines(text: string): string[] {
   return text
@@ -118,10 +122,22 @@ export function extractDraft(input: DraftExtractionInput): ExtractedDraft {
   // Symptoms: error-like lines from the content.
   const contentLines = lines(content);
   const symptoms = dedupeCap(
-    contentLines.filter((l) => ERROR_SIGNALS.test(l) && !FIX_MARKER.test(l)).map((l) => l.slice(0, 200)),
+    contentLines
+      .filter((l) => ERROR_SIGNALS.test(l) && !FIX_MARKER.test(l) && !CAUSE_MARKER.test(l))
+      .map((l) => l.slice(0, 200)),
     5,
   );
   if (symptoms.length) inferred.push("symptoms");
+
+  // Likely causes: lines that explain the root cause. Exclude fix/attempt lines
+  // so a single line isn't double-classified.
+  const likelyCauses = dedupeCap(
+    contentLines
+      .filter((l) => CAUSE_MARKER.test(l) && !FIX_MARKER.test(l) && !ATTEMPT_MARKER.test(l))
+      .map((l) => l.slice(0, 200)),
+    5,
+  );
+  if (likelyCauses.length) inferred.push("likelyCauses");
 
   // Failed attempts.
   const failedAttempts = dedupeCap(
@@ -148,6 +164,7 @@ export function extractDraft(input: DraftExtractionInput): ExtractedDraft {
     problem,
     environment,
     symptoms,
+    likelyCauses,
     failedAttempts,
     verifiedFix,
     report: { inferredFields: dedupeCap(inferred, 10), detectedStacks, detectedErrors, commitSha },

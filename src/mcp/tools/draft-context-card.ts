@@ -53,7 +53,7 @@ export function makeDraftContextCardHandler(repo: Repository) {
       problem,
       environment: extracted.environment,
       symptoms: args.symptoms ?? extracted.symptoms,
-      likelyCauses: args.likely_causes ?? [],
+      likelyCauses: args.likely_causes ?? extracted.likelyCauses,
       failedAttempts: extracted.failedAttempts,
       verifiedFix: args.verified_fix ?? extracted.verifiedFix,
       verification: args.verification ?? [],
