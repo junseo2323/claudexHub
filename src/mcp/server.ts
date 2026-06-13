@@ -4,6 +4,7 @@ import { Repository } from "../domain/repository.js";
 import { SearchService } from "../domain/search.js";
 import { searchContextSchema, makeSearchContextHandler } from "./tools/search-context.js";
 import { getContextCardSchema, makeGetContextCardHandler } from "./tools/get-context-card.js";
+import { relatedContextSchema, makeRelatedContextHandler } from "./tools/related-context.js";
 import { draftContextCardSchema, makeDraftContextCardHandler } from "./tools/draft-context-card.js";
 import {
   publishContextCardSchema,
@@ -12,7 +13,7 @@ import {
 import { recordFeedbackSchema, makeRecordFeedbackHandler } from "./tools/record-feedback.js";
 import { markStaleSchema, makeMarkStaleHandler } from "./tools/mark-stale.js";
 
-/** Build an McpServer with the 4 Phase-1 tools registered against `db`. */
+/** Build an McpServer with the Phase-1 context-hub tools registered against `db`. */
 export function buildServer(db: DB): McpServer {
   const repo = new Repository(db);
   const search = new SearchService(db);
@@ -44,6 +45,18 @@ export function buildServer(db: DB): McpServer {
       inputSchema: getContextCardSchema,
     },
     makeGetContextCardHandler(repo),
+  );
+
+  server.registerTool(
+    "related_context",
+    {
+      description:
+        "Find context cards related to a given card id (same hybrid search over " +
+        "its title + problem). Returns BRIEF results only. Use after a search hit " +
+        "to discover adjacent fixes; fetch full content with get_context_card.",
+      inputSchema: relatedContextSchema,
+    },
+    makeRelatedContextHandler(search),
   );
 
   server.registerTool(

@@ -4,6 +4,8 @@ import { Repository } from "../src/domain/repository.js";
 import { makeDraftContextCardHandler } from "../src/mcp/tools/draft-context-card.js";
 import { makePublishContextCardHandler } from "../src/mcp/tools/publish-context-card.js";
 import { makeGetContextCardHandler } from "../src/mcp/tools/get-context-card.js";
+import { makeRelatedContextHandler } from "../src/mcp/tools/related-context.js";
+import { SearchService } from "../src/domain/search.js";
 import { freshDb } from "./helpers.js";
 
 function parse(result: { content: { text: string }[] }) {
@@ -135,5 +137,30 @@ describe("MCP tool handlers", () => {
     expect(out).toHaveProperty("agent_hint");
     // Compact: heavy fields like failedAttempts/symptoms are omitted.
     expect(out).not.toHaveProperty("failedAttempts");
+  });
+
+  it("related_context returns brief siblings, excluding the source card", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const a = await repo.createCard({
+      title: "OAuth cookie not stored", problem: "cookie missing on cross-site fetch",
+      environment: {}, symptoms: [], likelyCauses: [], failedAttempts: [],
+      verifiedFix: ["SameSite=None"], verification: [], agentHint: "", sourceLinks: [],
+      visibility: "public", status: "published",
+    });
+    const b = await repo.createCard({
+      title: "CloudFront SPA 403", problem: "403 on deep-link refresh",
+      environment: {}, symptoms: [], likelyCauses: [], failedAttempts: [],
+      verifiedFix: ["map 403 to index.html"], verification: [], agentHint: "", sourceLinks: [],
+      visibility: "public", status: "published",
+    });
+
+    const related = makeRelatedContextHandler(new SearchService(db));
+    const out = parse(await related({ id: a.id, limit: 3 }));
+    expect(Array.isArray(out.related)).toBe(true);
+    expect(out.related.find((r: { id: string }) => r.id === a.id)).toBeUndefined();
+    expect(out.related.find((r: { id: string }) => r.id === b.id)).toBeTruthy();
+    // Brief shape: no full body leaks.
+    expect(out.related[0]).not.toHaveProperty("problem");
   });
 });

@@ -81,6 +81,41 @@ describe("hybrid search", () => {
     expect(filtered.every((r) => r.confidence >= 100)).toBe(true);
   });
 
+  it("related() returns other viewable cards and excludes the card itself", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const a = await repo.createCard(
+      cardInputSchema.parse({
+        title: "OAuth cookie not stored cross-site",
+        problem: "Set-Cookie present but cookie not sent on cross-site fetch",
+        verifiedFix: ["SameSite=None; Secure"],
+        status: "published",
+        visibility: "public",
+      }),
+    );
+    const b = await repo.createCard(
+      cardInputSchema.parse({
+        title: "CloudFront SPA 403 on refresh",
+        problem: "S3 returns 403 on deep-link refresh behind CloudFront",
+        verifiedFix: ["map 403 to index.html"],
+        status: "published",
+        visibility: "public",
+      }),
+    );
+    const search = new SearchService(db);
+
+    const related = await search.related(a.id, { limit: 3 });
+    expect(related.find((r) => r.id === a.id)).toBeUndefined();
+    expect(related.find((r) => r.id === b.id)).toBeTruthy();
+
+    // canView predicate is honored: reject everything → empty.
+    const none = await search.related(a.id, { limit: 3, canView: () => false });
+    expect(none).toHaveLength(0);
+
+    // Unknown card id yields no results.
+    expect(await search.related("does-not-exist")).toHaveLength(0);
+  });
+
   it("file path hints contribute to matching", async () => {
     db = freshDb();
     const repo = new Repository(db);

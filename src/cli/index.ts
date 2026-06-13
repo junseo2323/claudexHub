@@ -166,6 +166,17 @@ program
   );
 
 program
+  .command("related <id>")
+  .description("Find cards related to a given card")
+  .option("--limit <n>", "Max related cards", "3")
+  .action(async (id: string, opts: { limit: string }) => {
+    migrate(getDb());
+    const search = new SearchService(getDb());
+    const related = await search.related(id, { limit: Number(opts.limit) });
+    console.log(JSON.stringify(related, null, 2));
+  });
+
+program
   .command("publish <id>")
   .description("Publish a card")
   .option("--visibility <v>", "public|private|team", "public")

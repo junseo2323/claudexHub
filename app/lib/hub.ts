@@ -223,20 +223,10 @@ export function scanCard(card: ContextCard): RedactionReport {
 
 /** Semantically related cards the viewer may see (excludes the card itself). */
 export async function relatedCards(cardId: string, viewerId?: string, limit = 3): Promise<CardBrief[]> {
-  const repo = new Repository(db());
-  const card = repo.getCard(cardId);
-  if (!card) return [];
-  const briefs = await new SearchService(db()).search({
-    query: `${card.title} ${card.problem}`,
-    limit: limit + 5,
+  return new SearchService(db()).related(cardId, {
+    limit,
+    canView: (c) => canViewCard(c, viewerId),
   });
-  return briefs
-    .filter((b) => b.id !== cardId)
-    .filter((b) => {
-      const c = repo.getCard(b.id);
-      return c != null && canViewCard(c, viewerId);
-    })
-    .slice(0, limit);
 }
 
 /** A card the given user may edit (they authored it). Undefined otherwise. */

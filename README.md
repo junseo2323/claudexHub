@@ -13,7 +13,7 @@ data. No OAuth or hosted endpoint yet — everything runs against a local SQLite
 
 ## What's here
 
-- **MCP server** (`src/index.ts`) exposing 6 tools over stdio.
+- **MCP server** (`src/index.ts`) exposing 7 tools over stdio.
 - **Local SQLite** store with **hybrid search**: FTS5 keyword + sqlite-vec
   embedding similarity, fused into a confidence score.
 - **Brief-first retrieval**: `search_context` returns compact briefs; full card
@@ -32,6 +32,7 @@ data. No OAuth or hosted endpoint yet — everything runs against a local SQLite
 | --- | --- |
 | `search_context` | Hybrid search → **brief** results only. Filters: `stack`, `error`, `files` (path hints feed matching), `repo` (boosts same-repo evidence), `min_confidence`. |
 | `get_context_card` | Fetch one card; `mode` = `brief` \| `full` \| `agent_json` (compact, agent-optimized). |
+| `related_context` | Given a card id, find adjacent cards via the same hybrid search over its title + problem (excludes itself). **Brief** results only; use after a search hit to pivot to related fixes. |
 | `draft_context_card` | Create a redacted **draft** from a solved problem; auto-extracts stacks, symptoms, failed attempts, fix, commit sha, and GitHub commit/PR/issue source links from raw logs/diffs (heuristic, no LLM). |
 | `publish_context_card` | Publish a draft after `approve=true`; re-scans for secrets and blocks if any remain. |
 | `record_feedback` | Record reuse outcome (success/partial/failed); updates reuse counts, accumulated tokens saved, and confidence. |
@@ -64,6 +65,7 @@ npm run cli -- list
 npm run cli -- draft --file ./worklog.md --problem "OAuth cookie missing in production" --repo junseo2323/claudexHub --source conversation
 npm run cli -- search "kakao oauth cookie not stored" --stack "Next.js,NestJS"
 npm run cli -- get <card_id> --mode agent_json
+npm run cli -- related <card_id> --limit 3
 npm run cli -- create --json ./card.json
 npm run cli -- publish <card_id> --visibility public
 npm run cli -- feedback <card_id> --outcome success --before 12000 --after 2000
@@ -148,7 +150,7 @@ npm run web:start                 # serve at http://localhost:3000
 | `npm run build` | Bundle the MCP server/CLI to `dist/`. |
 | `npm run migrate` | Create/upgrade the SQLite schema. |
 | `npm run seed` | Load example cards. |
-| `npm run cli -- <cmd>` | Dev CLI (create/list/get/search/publish/feedback/stale/stats/reindex). |
+| `npm run cli -- <cmd>` | Dev CLI (create/list/get/search/related/publish/feedback/stale/stats/reindex). |
 | `npm run web:dev` / `web:build` / `web:start` | Next.js read-only web app. |
 | `npm test` | Run the test suite (vitest, in-memory DB, noop embeddings). |
 | `npm run typecheck` | `tsc --noEmit` for the library/MCP (`tsconfig.lib.json`). |

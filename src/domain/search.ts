@@ -1,7 +1,7 @@
 import type { DB } from "../db/connection.js";
 import { config } from "../config.js";
 import { getEmbeddingProvider } from "../embeddings/provider.js";
-import type { CardBrief, SearchInput } from "./types.js";
+import type { CardBrief, ContextCard, SearchInput } from "./types.js";
 import { Repository } from "./repository.js";
 import { buildBrief, type MatchSignals } from "./brief.js";
 
@@ -146,5 +146,37 @@ export class SearchService {
 
     results.sort((a, b) => b.confidence - a.confidence);
     return results.slice(0, limit);
+  }
+
+  /**
+   * Cards semantically related to an existing one, ranked by the same hybrid
+   * search over its title + problem. Excludes the card itself. Pass `canView`
+   * to enforce per-viewer visibility (the web does); agents/CLI omit it and
+   * rely on search's published/approved status filter.
+   */
+  async related(
+    cardId: string,
+    opts: { limit?: number; canView?: (card: ContextCard) => boolean } = {},
+  ): Promise<CardBrief[]> {
+    const limit = Math.min(Math.max(opts.limit ?? 3, 1), 10);
+    const card = this.repo.getCard(cardId);
+    if (!card) return [];
+
+    const briefs = await this.search({
+      query: `${card.title} ${card.problem}`,
+      limit: limit + 5,
+    });
+
+    const out: CardBrief[] = [];
+    for (const b of briefs) {
+      if (b.id === cardId) continue;
+      if (opts.canView) {
+        const c = this.repo.getCard(b.id);
+        if (!c || !opts.canView(c)) continue;
+      }
+      out.push(b);
+      if (out.length >= limit) break;
+    }
+    return out;
   }
 }
