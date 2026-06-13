@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { DB } from "../src/db/connection.js";
 import { Repository } from "../src/domain/repository.js";
 import { cardInputSchema } from "../src/domain/card-schema.js";
-import { hubStats, reputationScore } from "../src/domain/stats.js";
+import { hubStats, reputationScore, confidenceCalibration } from "../src/domain/stats.js";
 import { freshDb } from "./helpers.js";
 
 async function published(repo: Repository, title: string, env: Record<string, string> = {}) {
@@ -75,5 +75,25 @@ describe("hubStats", () => {
     });
     // 4*5 + 3*3 + 5000/1000 - 1*4 - 2*2 = 20 + 9 + 5 - 4 - 4 = 26
     expect(score).toBe(26);
+  });
+
+  it("confidenceCalibration buckets published cards and observes reuse", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const a = await published(repo, "Calib A");
+    await published(repo, "Calib B");
+    await repo.recordUsage(a.id, { agent: "codex", outcome: "success" });
+    await repo.recordUsage(a.id, { agent: "codex", outcome: "failed" });
+
+    const buckets = confidenceCalibration(db);
+    expect(buckets).toHaveLength(5);
+    // Every published card lands in exactly one bucket.
+    expect(buckets.reduce((s, b) => s + b.cards, 0)).toBe(2);
+    // The bucket holding card A reflects its 1 success / 1 failure.
+    const withReuse = buckets.find((b) => b.reuseEvents > 0)!;
+    expect(withReuse.reuseEvents).toBe(2);
+    expect(withReuse.successRate).toBeCloseTo(0.5, 5);
+    // Buckets with no cards report a null success rate.
+    expect(buckets.some((b) => b.cards === 0 && b.successRate === null)).toBe(true);
   });
 });

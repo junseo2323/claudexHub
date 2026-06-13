@@ -12,9 +12,11 @@ import {
   leaderboard,
   userStats,
   teamStats,
+  confidenceCalibration,
   type HubStats,
   type UserSummary,
   type TeamStats,
+  type CalibrationBucket,
 } from "../../src/domain/stats.js";
 import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { UserRepository, type User } from "../../src/domain/users.js";
@@ -48,6 +50,10 @@ function canViewCard(card: ContextCard, viewerId?: string): boolean {
 
 export function getStats(): HubStats {
   return hubStats(db());
+}
+
+export function getCalibration(): CalibrationBucket[] {
+  return confidenceCalibration(db());
 }
 
 /** Public-visibility cards only (dashboard / anonymous browse). */
@@ -341,4 +347,4 @@ export function addTeamMemberByLogin(
   return { ok: true };
 }
 
-export type { HubStats, ContextCard, CardBrief, UserSummary, User, Team, TeamStats };
+export type { HubStats, ContextCard, CardBrief, UserSummary, User, Team, TeamStats, CalibrationBucket };
