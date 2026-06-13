@@ -11,9 +11,12 @@ import {
   hubStats,
   leaderboard,
   userStats,
+  teamStats,
   type HubStats,
   type UserSummary,
+  type TeamStats,
 } from "../../src/domain/stats.js";
+import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { UserRepository, type User } from "../../src/domain/users.js";
 import type { ContextCard, CardBrief, SearchInput } from "../../src/domain/types.js";
 
@@ -243,4 +246,44 @@ export async function markCardStaleForUser(
   return new Repository(db()).markStale(cardId, reason, affectedVersions);
 }
 
-export type { HubStats, ContextCard, CardBrief, UserSummary, User };
+// --- Teams ---
+
+export function createTeamForUser(userId: string, name: string): Team {
+  return new TeamRepository(db()).createTeam(name, userId);
+}
+
+export function listTeamsForUser(userId: string): Team[] {
+  return new TeamRepository(db()).listTeamsForUser(userId);
+}
+
+export function getTeamBySlug(slug: string): Team | undefined {
+  return new TeamRepository(db()).getBySlug(slug);
+}
+
+export function getTeamStatsById(teamId: string): TeamStats | undefined {
+  return teamStats(db(), teamId);
+}
+
+export function isTeamOwner(teamId: string, userId: string): boolean {
+  return new TeamRepository(db()).roleOf(teamId, userId) === "owner";
+}
+
+export function isTeamMember(teamId: string, userId: string): boolean {
+  return new TeamRepository(db()).isMember(teamId, userId);
+}
+
+/** Owner-only: add a member by login. Returns an error code when not allowed. */
+export function addTeamMemberByLogin(
+  teamId: string,
+  byUserId: string,
+  login: string,
+): { ok: true } | { ok: false; error: "forbidden" | "no_such_user" } {
+  const teams = new TeamRepository(db());
+  if (teams.roleOf(teamId, byUserId) !== "owner") return { ok: false, error: "forbidden" };
+  const user = new UserRepository(db()).getByLogin(login.trim());
+  if (!user) return { ok: false, error: "no_such_user" };
+  teams.addMember(teamId, user.id);
+  return { ok: true };
+}
+
+export type { HubStats, ContextCard, CardBrief, UserSummary, User, Team, TeamStats };

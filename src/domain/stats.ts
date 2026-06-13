@@ -1,6 +1,7 @@
 import type { DB } from "../db/connection.js";
 import { Repository } from "./repository.js";
 import { UserRepository, type User } from "./users.js";
+import { TeamRepository, type Team, type TeamRole } from "./teams.js";
 import type { ContextCard } from "./types.js";
 
 export interface StackCount {
@@ -272,4 +273,63 @@ export function userStats(
     .filter((c): c is ContextCard => !!c && STALE_STATUSES.has(c.status) === false && c.status === "published")
     .sort((a, b) => b.confidenceScore - a.confidenceScore);
   return { summary, cards };
+}
+
+export interface TeamMemberSummary extends UserSummary {
+  role: TeamRole;
+}
+
+export interface TeamStats {
+  team: Team;
+  members: TeamMemberSummary[];
+  totals: {
+    cardsPublished: number;
+    verifiedFixCount: number;
+    successfulReuse: number;
+    failedReuse: number;
+    tokensSaved: number;
+    reputationScore: number;
+  };
+}
+
+/** Aggregate contribution stats across a team's members. */
+export function teamStats(db: DB, teamId: string): TeamStats | undefined {
+  const teams = new TeamRepository(db);
+  const team = teams.getById(teamId);
+  if (!team) return undefined;
+
+  const all = summarize(db);
+  const users = new UserRepository(db);
+  const members: TeamMemberSummary[] = teams.listMembers(teamId).map((m) => {
+    const base =
+      all.get(m.id) ??
+      ({
+        user: users.getById(m.id)!,
+        cardsAuthored: 0,
+        cardsPublished: 0,
+        cardsStale: 0,
+        verifiedFixCount: 0,
+        successfulReuse: 0,
+        failedReuse: 0,
+        tokensSaved: 0,
+        reputationScore: 0,
+      } as UserSummary);
+    return { ...base, role: m.role };
+  });
+
+  const totals = members.reduce(
+    (acc, m) => {
+      acc.cardsPublished += m.cardsPublished;
+      acc.verifiedFixCount += m.verifiedFixCount;
+      acc.successfulReuse += m.successfulReuse;
+      acc.failedReuse += m.failedReuse;
+      acc.tokensSaved += m.tokensSaved;
+      acc.reputationScore += m.reputationScore;
+      return acc;
+    },
+    { cardsPublished: 0, verifiedFixCount: 0, successfulReuse: 0, failedReuse: 0, tokensSaved: 0, reputationScore: 0 },
+  );
+
+  members.sort((a, b) => b.reputationScore - a.reputationScore);
+  return { team, members, totals };
 }
