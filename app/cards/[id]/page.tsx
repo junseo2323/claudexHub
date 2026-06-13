@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPublicCard, getAuthorId, getUser } from "../../lib/hub";
-import { Avatar, EnvChips, RiskBadge, riskFromConfidence } from "../../components";
+import { getPublicCard, getAuthorId, getUser, relatedCards } from "../../lib/hub";
+import { getCurrentUser } from "../../lib/auth";
+import { markStaleAction, recordFeedbackAction } from "../../lib/actions";
+import { Avatar, EnvChips, RiskBadge, riskFromConfidence, BriefRow } from "../../components";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,14 +22,24 @@ function List({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-export default async function CardDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function CardDetail({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ feedback?: string }>;
+}) {
   const { id } = await params;
+  const { feedback } = await searchParams;
   const card = getPublicCard(id);
   if (!card) notFound();
 
   const authorId = getAuthorId(card.id);
   const author = authorId ? getUser(authorId) : undefined;
+  const me = await getCurrentUser();
+  const isOwner = !!me && me.id === authorId;
   const stale = card.status === "stale" || card.status === "deprecated";
+  const related = await relatedCards(card.id, 3);
 
   return (
     <>
@@ -102,10 +114,67 @@ export default async function CardDetail({ params }: { params: Promise<{ id: str
         </div>
       )}
 
+      <div className="section panel">
+        <h3 style={{ marginTop: 0 }}>Did this card help?</h3>
+        {feedback === "1" && <div className="chip good" style={{ marginBottom: 10 }}>✓ Thanks — feedback recorded</div>}
+        {me ? (
+          <div className="feedback-buttons">
+            {(["success", "partial", "failed"] as const).map((outcome) => (
+              <form key={outcome} action={recordFeedbackAction}>
+                <input type="hidden" name="cardId" value={card.id} />
+                <input type="hidden" name="outcome" value={outcome} />
+                <button type="submit" className={`btn ${outcome === "failed" ? "secondary" : ""}`}>
+                  {outcome === "success" ? "👍 Worked" : outcome === "partial" ? "🤏 Partly" : "👎 Didn’t work"}
+                </button>
+              </form>
+            ))}
+          </div>
+        ) : (
+          <p className="subtle">
+            <a href="/login">Sign in</a> to record whether this fix worked for you.
+          </p>
+        )}
+        <p className="subtle" style={{ marginBottom: 0, marginTop: 10 }}>
+          Reused {card.successfulReuseCount + card.failedReuseCount}× · {card.successfulReuseCount} ok /{" "}
+          {card.failedReuseCount} failed
+        </p>
+      </div>
+
+      {related.length > 0 && (
+        <div className="section">
+          <h3>Related cards</h3>
+          <div className="card-list">
+            {related.map((b) => (
+              <BriefRow key={b.id} brief={b} />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="section subtle">
         Est. tokens saved per reuse: {card.estimatedTokensSaved.toLocaleString()} · Updated{" "}
         {new Date(card.updatedAt).toLocaleDateString()}
       </div>
+
+      {isOwner && (
+        <div className="section panel">
+          <h3 style={{ marginTop: 0 }}>Author actions</h3>
+          <div className="meta" style={{ marginBottom: stale ? 0 : 14 }}>
+            <Link href={`/cards/${card.id}/edit`} className="btn secondary">
+              Edit card
+            </Link>
+          </div>
+          {!stale && (
+            <form action={markStaleAction} className="stale-form">
+              <input type="hidden" name="cardId" value={card.id} />
+              <input type="text" name="reason" placeholder="Why is this stale? (e.g. Next.js 16 changed defaults)" />
+              <button type="submit" className="btn secondary">
+                Mark stale
+              </button>
+            </form>
+          )}
+        </div>
+      )}
     </>
   );
 }

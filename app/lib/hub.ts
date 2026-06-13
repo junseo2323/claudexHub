@@ -170,4 +170,77 @@ export function scanCard(card: ContextCard): RedactionReport {
   return redactCard(card).report;
 }
 
+/** Semantically related published cards (excludes the card itself). */
+export async function relatedCards(cardId: string, limit = 3): Promise<CardBrief[]> {
+  const card = new Repository(db()).getCard(cardId);
+  if (!card) return [];
+  const briefs = await new SearchService(db()).search({
+    query: `${card.title} ${card.problem}`,
+    limit: limit + 1,
+  });
+  return briefs.filter((b) => b.id !== cardId).slice(0, limit);
+}
+
+/** A card the given user may edit (they authored it). Undefined otherwise. */
+export function getEditableCardForUser(cardId: string, userId: string): ContextCard | undefined {
+  const card = new Repository(db()).getCard(cardId);
+  if (!card) return undefined;
+  if (new UserRepository(db()).getCardAuthorId(cardId) !== userId) return undefined;
+  return card;
+}
+
+export interface EditCardFields {
+  title: string;
+  problem: string;
+  environment: Record<string, string>;
+  symptoms: string[];
+  likelyCauses: string[];
+  failedAttempts: string[];
+  verifiedFix: string[];
+  verification: string[];
+  agentHint: string;
+}
+
+/** Update an authored card; fields are redacted before saving (re-scores + re-embeds). */
+export async function updateCardForUser(
+  cardId: string,
+  userId: string,
+  fields: EditCardFields,
+): Promise<{ card: ContextCard; redaction: RedactionReport }> {
+  if (!getEditableCardForUser(cardId, userId)) throw new Error("not_editable");
+  const { card: patch, report } = redactCard(fields as Partial<ContextCard>);
+  const updated = await new Repository(db()).updateCard(cardId, patch);
+  return { card: updated, redaction: report };
+}
+
+/** Record a reuse outcome on a published card (web feedback). Feeds the
+ *  reuse counts, tokens-saved, confidence, and the author's reputation. */
+export async function recordFeedbackForCard(
+  cardId: string,
+  outcome: "success" | "partial" | "failed",
+): Promise<ContextCard> {
+  const repo = new Repository(db());
+  const card = repo.getCard(cardId);
+  if (!card || !PUBLIC_STATUSES.has(card.status)) throw new Error("card_not_found");
+  const { card: updated } = await repo.recordUsage(cardId, { agent: "other", outcome });
+  return updated;
+}
+
+/** Delete an authored card (and its evidence/indexes). */
+export function deleteCardForUser(cardId: string, userId: string): void {
+  if (!getEditableCardForUser(cardId, userId)) throw new Error("not_editable");
+  new Repository(db()).deleteCard(cardId);
+}
+
+/** Mark an authored card stale (no longer trusted). */
+export async function markCardStaleForUser(
+  cardId: string,
+  userId: string,
+  reason: string,
+  affectedVersions?: string[],
+): Promise<ContextCard> {
+  if (!getEditableCardForUser(cardId, userId)) throw new Error("not_editable");
+  return new Repository(db()).markStale(cardId, reason, affectedVersions);
+}
+
 export type { HubStats, ContextCard, CardBrief, UserSummary, User };

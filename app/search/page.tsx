@@ -7,12 +7,17 @@ export const runtime = "nodejs";
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; min?: string }>;
+  searchParams: Promise<{ q?: string; min?: string; stack?: string }>;
 }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const min = sp.min ? Number(sp.min) : undefined;
-  const results = q ? await search({ query: q, minConfidence: min, limit: 10 }) : [];
+  const stack = (sp.stack ?? "").trim();
+  const stackList = stack ? stack.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+
+  const results = q
+    ? await search({ query: q, stack: stackList, minConfidence: min, limit: 10 })
+    : [];
 
   return (
     <>
@@ -20,13 +25,27 @@ export default async function SearchPage({
       <p className="subtle">Hybrid keyword + semantic search over the Context Hub.</p>
 
       <form className="search-form" method="get">
-        <input type="text" name="q" defaultValue={q} placeholder="Describe the problem, error, or symptom…" />
+        <input
+          type="text"
+          name="q"
+          defaultValue={q}
+          placeholder="Describe the problem, error, or symptom…"
+        />
         <button type="submit">Search</button>
+        <div className="search-filters">
+          <input type="text" name="stack" defaultValue={stack} placeholder="stack filter (comma-separated)" />
+          <label className="min-filter">
+            min confidence
+            <input type="number" name="min" min={0} max={100} defaultValue={sp.min ?? ""} placeholder="0" />
+          </label>
+        </div>
       </form>
 
       {q && (
         <p className="subtle">
           {results.length} result{results.length === 1 ? "" : "s"} for “{q}”
+          {stackList ? ` · stack ${stackList.join(", ")}` : ""}
+          {min != null ? ` · ≥ ${min}` : ""}
         </p>
       )}
 
