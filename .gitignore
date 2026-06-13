@@ -2,6 +2,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Next.js
+.next/
+next-env.d.ts
+out/
+
 # Local SQLite database + WAL artifacts
 data/*.db
 data/*.db-shm

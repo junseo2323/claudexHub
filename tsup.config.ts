@@ -7,6 +7,7 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
+  tsconfig: "tsconfig.lib.json",
   // Native + heavy deps are loaded at runtime, not bundled.
   external: ["better-sqlite3", "sqlite-vec", "@xenova/transformers"],
   // schema.sql is read from disk at runtime; ensure it ships alongside dist.

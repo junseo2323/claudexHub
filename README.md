@@ -7,9 +7,9 @@ Codex, Cursor) read and write **Context Cards** — structured problem-solving
 units — through an MCP server, so a fix solved once can be searched and reused
 later instead of re-derived from scratch.
 
-This repository is **Phase 1**: a local-first prototype. No web app, no OAuth, no
-hosted endpoint yet — just a local SQLite store and a stdio MCP server you can
-plug into Claude Code.
+This repository is **Phase 1**: a local-first prototype centered on a stdio MCP
+server you can plug into Claude Code, plus a read-only **web view** over the same
+data. No OAuth or hosted endpoint yet — everything runs against a local SQLite store.
 
 ## What's here
 
@@ -22,6 +22,8 @@ plug into Claude Code.
   card is stored or published.
 - **Human approval**: agents create *drafts*; publishing requires an explicit
   approval step.
+- A **read-only web app** (`app/`, Next.js) — dashboard, leaderboard/stats, card
+  browse, detail, and search — reusing the exact same domain layer.
 - A **dev CLI** and **seed data** (20 example cards).
 
 ## MCP tools
@@ -94,24 +96,44 @@ claude mcp add context-hub --env EMBEDDING_PROVIDER=local -- npx tsx /abs/path/t
 Then in Claude Code: confirm the tools appear, and try
 `search_context("kakao oauth cookie not stored")`.
 
+## Web app (read-only)
+
+A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
+
+- **Dashboard** (`/`) — hub stats, top stacks, agent activity, reputation score.
+- **Cards** (`/cards`, `/cards/[id]`) — browse published cards and view full detail.
+- **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool.
+
+```bash
+npm run migrate && npm run seed   # ensure the local DB has data
+npm run web:build                 # production build (uses the webpack builder)
+npm run web:start                 # serve at http://localhost:3000
+# or: npm run web:dev             # dev server with HMR
+```
+
+> The web build uses the webpack builder (`--webpack`) so `.js`→`.ts` resolution
+> applies to the reused `src/` domain modules. `EMBEDDING_PROVIDER`/`HUB_DB_PATH`
+> are read the same way as the MCP server.
+
 ## Scripts
 
 | Script | Description |
 | --- | --- |
 | `npm run dev` | Run the MCP server from source (stdio). |
-| `npm run build` | Bundle to `dist/`. |
+| `npm run build` | Bundle the MCP server/CLI to `dist/`. |
 | `npm run migrate` | Create/upgrade the SQLite schema. |
 | `npm run seed` | Load example cards. |
-| `npm run cli -- <cmd>` | Dev CLI (create/list/get/search/publish/delete/reindex). |
+| `npm run cli -- <cmd>` | Dev CLI (create/list/get/search/publish/feedback/stale/stats/reindex). |
+| `npm run web:dev` / `web:build` / `web:start` | Next.js read-only web app. |
 | `npm test` | Run the test suite (vitest, in-memory DB, noop embeddings). |
-| `npm run typecheck` | `tsc --noEmit`. |
+| `npm run typecheck` | `tsc --noEmit` for the library/MCP (`tsconfig.lib.json`). |
 
 ## Architecture
 
-Core domain logic (storage, search, redaction, scoring, embeddings) lives in
+Core domain logic (storage, search, redaction, scoring, stats, embeddings) lives in
 `src/domain/` and `src/embeddings/` with **no MCP/SDK dependency**, so it's
-reused by the MCP server, the CLI, the seed script, and tests. `src/mcp/` is a
-thin adapter.
+reused by the MCP server, the CLI, the seed script, tests, **and the web app**
+(`app/lib/hub.ts` imports it directly). `src/mcp/` is a thin adapter.
 
 SQLite coordinates three tables, kept in sync inside a single transaction on
 every write (no triggers — embeddings are computed in app code):
