@@ -1,0 +1,42 @@
+{
+  "name": "ai-agent-context-hub",
+  "version": "0.1.0",
+  "description": "Agent-first developer knowledge platform — local MCP prototype (Phase 1)",
+  "type": "module",
+  "bin": {
+    "context-hub": "dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "migrate": "tsx src/db/migrate.ts",
+    "seed": "tsx src/seed/seed.ts",
+    "cli": "tsx src/cli/index.ts",
+    "reindex": "tsx src/cli/index.ts reindex",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@xenova/transformers": "^2.17.2",
+    "better-sqlite3": "^11.10.0",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "nanoid": "^5.0.9",
+    "sqlite-vec": "^0.1.7-alpha.2",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

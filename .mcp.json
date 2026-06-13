@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "context-hub": {
+      "command": "npx",
+      "args": ["tsx", "src/index.ts"],
+      "env": {
+        "EMBEDDING_PROVIDER": "local",
+        "HUB_DB_PATH": "./data/hub.db"
+      }
+    }
+  }
+}

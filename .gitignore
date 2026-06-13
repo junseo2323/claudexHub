@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local SQLite database + WAL artifacts
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Environment
+.env
+.env.local
+
+# Transformers.js model cache
+.cache/
