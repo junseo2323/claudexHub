@@ -25,8 +25,8 @@
     "web:start": "next start"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@xenova/transformers": "^2.17.2",
     "better-sqlite3": "^11.10.0",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
@@ -45,6 +45,10 @@
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.8"
+  },
+  "overrides": {
+    "esbuild": "^0.28.1",
+    "postcss": "^8.5.15"
   }
 }

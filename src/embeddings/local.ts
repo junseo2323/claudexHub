@@ -22,7 +22,7 @@ export class LocalEmbeddingProvider implements EmbeddingProvider {
   private async getExtractor(): Promise<FeatureExtractor> {
     if (!this.extractorPromise) {
       this.extractorPromise = (async () => {
-        const { pipeline } = await import("@xenova/transformers");
+        const { pipeline } = await import("@huggingface/transformers");
         return (await pipeline("feature-extraction", this.model)) as unknown as FeatureExtractor;
       })();
     }
