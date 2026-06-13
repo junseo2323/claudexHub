@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "../../../lib/auth";
 import { getEditableCardForUser } from "../../../lib/hub";
-import { editCardAction } from "../../../lib/actions";
+import { editCardAction, deleteCardAction } from "../../../lib/actions";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -94,6 +94,19 @@ export default async function EditCardPage({
           </a>
         </div>
       </form>
+
+      <div className="section panel" style={{ marginTop: 28 }}>
+        <h3 style={{ marginTop: 0 }}>Danger zone</h3>
+        <form action={deleteCardAction}>
+          <input type="hidden" name="cardId" value={card.id} />
+          <button type="submit" className="btn danger">
+            Delete this card
+          </button>
+          <p className="subtle" style={{ marginBottom: 0 }}>
+            Permanently removes the card and its evidence. This cannot be undone.
+          </p>
+        </form>
+      </div>
     </>
   );
 }

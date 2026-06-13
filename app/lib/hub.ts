@@ -170,6 +170,17 @@ export function scanCard(card: ContextCard): RedactionReport {
   return redactCard(card).report;
 }
 
+/** Semantically related published cards (excludes the card itself). */
+export async function relatedCards(cardId: string, limit = 3): Promise<CardBrief[]> {
+  const card = new Repository(db()).getCard(cardId);
+  if (!card) return [];
+  const briefs = await new SearchService(db()).search({
+    query: `${card.title} ${card.problem}`,
+    limit: limit + 1,
+  });
+  return briefs.filter((b) => b.id !== cardId).slice(0, limit);
+}
+
 /** A card the given user may edit (they authored it). Undefined otherwise. */
 export function getEditableCardForUser(cardId: string, userId: string): ContextCard | undefined {
   const card = new Repository(db()).getCard(cardId);
@@ -213,6 +224,12 @@ export async function recordFeedbackForCard(
   if (!card || !PUBLIC_STATUSES.has(card.status)) throw new Error("card_not_found");
   const { card: updated } = await repo.recordUsage(cardId, { agent: "other", outcome });
   return updated;
+}
+
+/** Delete an authored card (and its evidence/indexes). */
+export function deleteCardForUser(cardId: string, userId: string): void {
+  if (!getEditableCardForUser(cardId, userId)) throw new Error("not_editable");
+  new Repository(db()).deleteCard(cardId);
 }
 
 /** Mark an authored card stale (no longer trusted). */

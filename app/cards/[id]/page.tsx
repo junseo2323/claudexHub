@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPublicCard, getAuthorId, getUser } from "../../lib/hub";
+import { getPublicCard, getAuthorId, getUser, relatedCards } from "../../lib/hub";
 import { getCurrentUser } from "../../lib/auth";
 import { markStaleAction, recordFeedbackAction } from "../../lib/actions";
-import { Avatar, EnvChips, RiskBadge, riskFromConfidence } from "../../components";
+import { Avatar, EnvChips, RiskBadge, riskFromConfidence, BriefRow } from "../../components";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -39,6 +39,7 @@ export default async function CardDetail({
   const me = await getCurrentUser();
   const isOwner = !!me && me.id === authorId;
   const stale = card.status === "stale" || card.status === "deprecated";
+  const related = await relatedCards(card.id, 3);
 
   return (
     <>
@@ -138,6 +139,17 @@ export default async function CardDetail({
           {card.failedReuseCount} failed
         </p>
       </div>
+
+      {related.length > 0 && (
+        <div className="section">
+          <h3>Related cards</h3>
+          <div className="card-list">
+            {related.map((b) => (
+              <BriefRow key={b.id} brief={b} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="section subtle">
         Est. tokens saved per reuse: {card.estimatedTokensSaved.toLocaleString()} · Updated{" "}

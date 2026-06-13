@@ -8,6 +8,7 @@ import {
   updateCardForUser,
   markCardStaleForUser,
   recordFeedbackForCard,
+  deleteCardForUser,
 } from "./hub";
 
 function lines(value: FormDataEntryValue | null): string[] {
@@ -96,6 +97,13 @@ export async function recordFeedbackAction(formData: FormData) {
     await recordFeedbackForCard(cardId, outcome);
   }
   redirect(`/cards/${cardId}?feedback=1`);
+}
+
+export async function deleteCardAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  deleteCardForUser(str(formData, "cardId"), user.id);
+  redirect("/profile");
 }
 
 export async function markStaleAction(formData: FormData) {
