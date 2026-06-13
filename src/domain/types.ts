@@ -1,6 +1,21 @@
 export type Visibility = "public" | "private" | "team";
 export type CardStatus = "draft" | "approved" | "published" | "stale" | "deprecated";
 export type EvidenceSource = "worklog" | "diff" | "conversation" | "manual";
+export type AgentName = "claude_code" | "codex" | "cursor" | "other";
+export type UsageOutcome = "success" | "partial" | "failed";
+
+export interface AgentUsage {
+  id: string;
+  cardId: string;
+  agent: AgentName;
+  outcome: UsageOutcome;
+  tokensBeforeEstimate?: number;
+  tokensAfterActual?: number;
+  estimatedTokensSaved: number;
+  stack: string[];
+  notes?: string;
+  createdAt: string;
+}
 
 export interface CardEnvironment {
   frontend?: string;

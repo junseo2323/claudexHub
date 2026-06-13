@@ -6,6 +6,9 @@ import type {
   SourceEvidence,
   CardEnvironment,
   EvidenceSource,
+  AgentUsage,
+  AgentName,
+  UsageOutcome,
 } from "./types.js";
 import type { CardInput } from "./card-schema.js";
 import { computeConfidence, estimateTokensSaved } from "./scoring.js";
@@ -129,10 +132,94 @@ export class Repository {
       createdAt: existing.createdAt,
       updatedAt: new Date().toISOString(),
     };
+    // estimatedTokensSaved accumulates from real reuse feedback; only the
+    // creation baseline comes from the heuristic, so don't recompute it here.
     card.confidenceScore = computeConfidence(card);
-    card.estimatedTokensSaved = estimateTokensSaved(card);
     await this.persist(card, "update");
     return card;
+  }
+
+  /**
+   * Record an agent's reuse of a card and roll the outcome into the card's
+   * reuse counts, accumulated tokens saved, and confidence.
+   */
+  async recordUsage(
+    cardId: string,
+    usage: {
+      agent: AgentName;
+      outcome: UsageOutcome;
+      tokensBeforeEstimate?: number;
+      tokensAfterActual?: number;
+      stack?: string[];
+      notes?: string;
+    },
+  ): Promise<{ usage: AgentUsage; card: ContextCard }> {
+    const card = this.getCard(cardId);
+    if (!card) throw new Error(`Card not found: ${cardId}`);
+
+    // Prefer measured savings; otherwise fall back to the card's heuristic.
+    let saved = 0;
+    if (usage.outcome !== "failed") {
+      if (usage.tokensBeforeEstimate != null && usage.tokensAfterActual != null) {
+        saved = Math.max(usage.tokensBeforeEstimate - usage.tokensAfterActual, 0);
+      } else {
+        saved = estimateTokensSaved(card);
+      }
+    }
+
+    const row: AgentUsage = {
+      id: `use_${nanoid(12)}`,
+      cardId,
+      agent: usage.agent,
+      outcome: usage.outcome,
+      tokensBeforeEstimate: usage.tokensBeforeEstimate,
+      tokensAfterActual: usage.tokensAfterActual,
+      estimatedTokensSaved: saved,
+      stack: usage.stack ?? [],
+      notes: usage.notes,
+      createdAt: new Date().toISOString(),
+    };
+    this.db
+      .prepare(
+        `INSERT INTO agent_usage
+          (id, card_id, agent, outcome, tokens_before_estimate, tokens_after_actual,
+           estimated_tokens_saved, stack, notes, created_at)
+         VALUES (@id,@cardId,@agent,@outcome,@tokensBeforeEstimate,@tokensAfterActual,
+           @estimatedTokensSaved,@stack,@notes,@createdAt)`,
+      )
+      .run({
+        ...row,
+        tokensBeforeEstimate: row.tokensBeforeEstimate ?? null,
+        tokensAfterActual: row.tokensAfterActual ?? null,
+        stack: JSON.stringify(row.stack),
+        notes: row.notes ?? null,
+      });
+
+    const failed = usage.outcome === "failed";
+    const updated = await this.updateCard(cardId, {
+      successfulReuseCount: card.successfulReuseCount + (failed ? 0 : 1),
+      failedReuseCount: card.failedReuseCount + (failed ? 1 : 0),
+      estimatedTokensSaved: card.estimatedTokensSaved + saved,
+      lastVerifiedAt: usage.outcome === "success" ? row.createdAt : card.lastVerifiedAt,
+    });
+    return { usage: row, card: updated };
+  }
+
+  /** Mark a card stale (no longer trusted). Appends the reason to the card. */
+  async markStale(
+    cardId: string,
+    reason: string,
+    affectedVersions?: string[],
+  ): Promise<ContextCard> {
+    const card = this.getCard(cardId);
+    if (!card) throw new Error(`Card not found: ${cardId}`);
+    const note = affectedVersions?.length
+      ? `[STALE] ${reason} (affects: ${affectedVersions.join(", ")})`
+      : `[STALE] ${reason}`;
+    return this.updateCard(cardId, {
+      status: "stale",
+      agentHint: card.agentHint ? `${card.agentHint}\n${note}` : note,
+    });
   }
 
   getCard(id: string): ContextCard | undefined {

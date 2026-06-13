@@ -87,6 +87,45 @@ program
   });
 
 program
+  .command("feedback <id>")
+  .description("Record agent reuse feedback for a card")
+  .requiredOption("--outcome <outcome>", "success|partial|failed")
+  .option("--agent <agent>", "claude_code|codex|cursor|other", "claude_code")
+  .option("--before <n>", "Estimated tokens without the card")
+  .option("--after <n>", "Actual tokens used")
+  .action(
+    async (
+      id: string,
+      opts: { outcome: "success" | "partial" | "failed"; agent: string; before?: string; after?: string },
+    ) => {
+      const { card, usage } = await repo().recordUsage(id, {
+        agent: opts.agent as "claude_code" | "codex" | "cursor" | "other",
+        outcome: opts.outcome,
+        tokensBeforeEstimate: opts.before ? Number(opts.before) : undefined,
+        tokensAfterActual: opts.after ? Number(opts.after) : undefined,
+      });
+      console.log(
+        `Recorded ${usage.outcome} (+${usage.estimatedTokensSaved} tokens saved). ` +
+          `confidence=${card.confidenceScore} reuse=${card.successfulReuseCount}/${card.failedReuseCount}`,
+      );
+    },
+  );
+
+program
+  .command("stale <id>")
+  .description("Mark a card stale")
+  .requiredOption("--reason <reason>")
+  .option("--versions <versions>", "Comma-separated affected versions")
+  .action(async (id: string, opts: { reason: string; versions?: string }) => {
+    const card = await repo().markStale(
+      id,
+      opts.reason,
+      opts.versions ? opts.versions.split(",").map((v) => v.trim()) : undefined,
+    );
+    console.log(`Marked ${card.id} as ${card.status}`);
+  });
+
+program
   .command("reindex")
   .description("Rebuild FTS + vector indexes from the canonical table")
   .action(async () => {

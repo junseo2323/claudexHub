@@ -11,7 +11,7 @@ plug into Claude Code.
 
 ## What's here
 
-- **MCP server** (`src/index.ts`) exposing 4 tools over stdio.
+- **MCP server** (`src/index.ts`) exposing 6 tools over stdio.
 - **Local SQLite** store with **hybrid search**: FTS5 keyword + sqlite-vec
   embedding similarity, fused into a confidence score.
 - **Brief-first retrieval**: `search_context` returns compact briefs; full card
@@ -30,6 +30,8 @@ plug into Claude Code.
 | `get_context_card` | Fetch one card; `mode` = `brief` \| `full` \| `agent_json` (compact, agent-optimized). |
 | `draft_context_card` | Create a redacted **draft** from a solved problem (worklog/diff/conversation). |
 | `publish_context_card` | Publish a draft after `approve=true`; re-scans for secrets and blocks if any remain. |
+| `record_feedback` | Record reuse outcome (success/partial/failed); updates reuse counts, accumulated tokens saved, and confidence. |
+| `mark_stale` | Mark a card stale when its fix is outdated/wrong; stale cards drop out of search. |
 
 ## Setup
 
@@ -59,6 +61,8 @@ npm run cli -- search "kakao oauth cookie not stored" --stack "Next.js,NestJS"
 npm run cli -- get <card_id> --mode agent_json
 npm run cli -- create --json ./card.json
 npm run cli -- publish <card_id> --visibility public
+npm run cli -- feedback <card_id> --outcome success --before 12000 --after 2000
+npm run cli -- stale <card_id> --reason "Next.js 16 changed defaults" --versions "Next.js 16"
 npm run cli -- reindex
 ```
 

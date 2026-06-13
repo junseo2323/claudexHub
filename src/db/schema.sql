@@ -43,6 +43,22 @@ CREATE TABLE IF NOT EXISTS source_evidence (
 
 CREATE INDEX IF NOT EXISTS idx_evidence_card ON source_evidence(card_id);
 
+-- Agent reuse feedback: one row per time an agent applies a card.
+CREATE TABLE IF NOT EXISTS agent_usage (
+  id TEXT PRIMARY KEY,
+  card_id TEXT NOT NULL REFERENCES context_cards(id) ON DELETE CASCADE,
+  agent TEXT NOT NULL,        -- claude_code | codex | cursor | other
+  outcome TEXT NOT NULL,      -- success | partial | failed
+  tokens_before_estimate INTEGER,
+  tokens_after_actual INTEGER,
+  estimated_tokens_saved INTEGER NOT NULL DEFAULT 0,
+  stack TEXT,                 -- JSON string[]
+  notes TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_usage_card ON agent_usage(card_id);
+
 -- Keyword search (contentless FTS5). Kept in sync from app code, not triggers.
 CREATE VIRTUAL TABLE IF NOT EXISTS context_cards_fts USING fts5(
   id UNINDEXED,

@@ -9,6 +9,8 @@ import {
   publishContextCardSchema,
   makePublishContextCardHandler,
 } from "./tools/publish-context-card.js";
+import { recordFeedbackSchema, makeRecordFeedbackHandler } from "./tools/record-feedback.js";
+import { markStaleSchema, makeMarkStaleHandler } from "./tools/mark-stale.js";
 
 /** Build an McpServer with the 4 Phase-1 tools registered against `db`. */
 export function buildServer(db: DB): McpServer {
@@ -65,6 +67,29 @@ export function buildServer(db: DB): McpServer {
       inputSchema: publishContextCardSchema,
     },
     makePublishContextCardHandler(repo),
+  );
+
+  server.registerTool(
+    "record_feedback",
+    {
+      description:
+        "Record the outcome after an agent applied a context card (success / " +
+        "partial / failed). Updates the card's reuse counts, accumulated tokens " +
+        "saved, and confidence. Call this after using a card so others benefit.",
+      inputSchema: recordFeedbackSchema,
+    },
+    makeRecordFeedbackHandler(repo),
+  );
+
+  server.registerTool(
+    "mark_stale",
+    {
+      description:
+        "Mark a context card as stale when its fix is outdated or wrong. Stale " +
+        "cards are excluded from search results.",
+      inputSchema: markStaleSchema,
+    },
+    makeMarkStaleHandler(repo),
   );
 
   return server;
