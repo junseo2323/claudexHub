@@ -11,13 +11,16 @@ import {
   hubStats,
   leaderboard,
   userStats,
+  teamStats,
   type HubStats,
   type UserSummary,
+  type TeamStats,
 } from "../../src/domain/stats.js";
+import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { UserRepository, type User } from "../../src/domain/users.js";
 import type { ContextCard, CardBrief, SearchInput } from "../../src/domain/types.js";
 
-/** Statuses the public, read-only site is allowed to surface. */
+/** Statuses the read-only site is allowed to surface. */
 const PUBLIC_STATUSES = new Set(["published", "stale", "deprecated"]);
 
 let ready = false;
@@ -30,22 +33,50 @@ function db() {
   return d;
 }
 
+/** Whether `viewerId` may see this card given its status + visibility. */
+function canViewCard(card: ContextCard, viewerId?: string): boolean {
+  if (!PUBLIC_STATUSES.has(card.status)) return false;
+  if (card.visibility === "team") {
+    const teamId = new TeamRepository(db()).getCardTeamId(card.id);
+    return !!teamId && !!viewerId && new TeamRepository(db()).isMember(teamId, viewerId);
+  }
+  if (card.visibility === "private") {
+    return !!viewerId && new UserRepository(db()).getCardAuthorId(card.id) === viewerId;
+  }
+  return true; // public (or team/community treated as public)
+}
+
 export function getStats(): HubStats {
   return hubStats(db());
 }
 
+/** Public-visibility cards only (dashboard / anonymous browse). */
 export function listPublicCards(): ContextCard[] {
-  return new Repository(db()).listCards().filter((c) => PUBLIC_STATUSES.has(c.status));
+  return new Repository(db())
+    .listCards()
+    .filter((c) => PUBLIC_STATUSES.has(c.status) && c.visibility !== "team" && c.visibility !== "private");
 }
 
-export function getPublicCard(id: string): ContextCard | undefined {
+/** Cards a given viewer may see: public + their team-scoped cards. */
+export function listViewableCards(viewerId?: string): ContextCard[] {
+  return new Repository(db()).listCards().filter((c) => canViewCard(c, viewerId));
+}
+
+export function getViewableCard(id: string, viewerId?: string): ContextCard | undefined {
   const card = new Repository(db()).getCard(id);
-  if (!card || !PUBLIC_STATUSES.has(card.status)) return undefined;
+  if (!card || !canViewCard(card, viewerId)) return undefined;
   return card;
 }
 
-export async function search(input: SearchInput): Promise<CardBrief[]> {
-  return new SearchService(db()).search(input);
+/** Search, then drop any results the viewer isn't allowed to see (team cards). */
+export async function search(input: SearchInput, viewerId?: string): Promise<CardBrief[]> {
+  const briefs = await new SearchService(db()).search(input);
+  if (briefs.length === 0) return briefs;
+  const repo = new Repository(db());
+  return briefs.filter((b) => {
+    const c = repo.getCard(b.id);
+    return c != null && canViewCard(c, viewerId);
+  });
 }
 
 export function getLeaderboard(): UserSummary[] {
@@ -166,19 +197,46 @@ export async function publishDraftForUser(
   return { ok: true, card: updated };
 }
 
+/** Publish a draft with team visibility (only the team's members can see it). */
+export async function publishDraftToTeam(
+  cardId: string,
+  userId: string,
+  teamId: string,
+): Promise<{ ok: true; card: ContextCard } | { ok: false; redaction: RedactionReport }> {
+  const card = getDraftForUser(cardId, userId);
+  if (!card) throw new Error("draft_not_found");
+  if (!new TeamRepository(db()).isMember(teamId, userId)) throw new Error("not_team_member");
+  const { report } = redactCard(card);
+  if (report.findingsCount > 0) return { ok: false, redaction: report };
+  const updated = await new Repository(db()).updateCard(cardId, {
+    status: "published",
+    visibility: "team",
+    lastVerifiedAt: card.verification.length > 0 ? new Date().toISOString() : card.lastVerifiedAt,
+  });
+  new TeamRepository(db()).setCardTeam(cardId, teamId);
+  return { ok: true, card: updated };
+}
+
 export function scanCard(card: ContextCard): RedactionReport {
   return redactCard(card).report;
 }
 
-/** Semantically related published cards (excludes the card itself). */
-export async function relatedCards(cardId: string, limit = 3): Promise<CardBrief[]> {
-  const card = new Repository(db()).getCard(cardId);
+/** Semantically related cards the viewer may see (excludes the card itself). */
+export async function relatedCards(cardId: string, viewerId?: string, limit = 3): Promise<CardBrief[]> {
+  const repo = new Repository(db());
+  const card = repo.getCard(cardId);
   if (!card) return [];
   const briefs = await new SearchService(db()).search({
     query: `${card.title} ${card.problem}`,
-    limit: limit + 1,
+    limit: limit + 5,
   });
-  return briefs.filter((b) => b.id !== cardId).slice(0, limit);
+  return briefs
+    .filter((b) => b.id !== cardId)
+    .filter((b) => {
+      const c = repo.getCard(b.id);
+      return c != null && canViewCard(c, viewerId);
+    })
+    .slice(0, limit);
 }
 
 /** A card the given user may edit (they authored it). Undefined otherwise. */
@@ -243,4 +301,44 @@ export async function markCardStaleForUser(
   return new Repository(db()).markStale(cardId, reason, affectedVersions);
 }
 
-export type { HubStats, ContextCard, CardBrief, UserSummary, User };
+// --- Teams ---
+
+export function createTeamForUser(userId: string, name: string): Team {
+  return new TeamRepository(db()).createTeam(name, userId);
+}
+
+export function listTeamsForUser(userId: string): Team[] {
+  return new TeamRepository(db()).listTeamsForUser(userId);
+}
+
+export function getTeamBySlug(slug: string): Team | undefined {
+  return new TeamRepository(db()).getBySlug(slug);
+}
+
+export function getTeamStatsById(teamId: string): TeamStats | undefined {
+  return teamStats(db(), teamId);
+}
+
+export function isTeamOwner(teamId: string, userId: string): boolean {
+  return new TeamRepository(db()).roleOf(teamId, userId) === "owner";
+}
+
+export function isTeamMember(teamId: string, userId: string): boolean {
+  return new TeamRepository(db()).isMember(teamId, userId);
+}
+
+/** Owner-only: add a member by login. Returns an error code when not allowed. */
+export function addTeamMemberByLogin(
+  teamId: string,
+  byUserId: string,
+  login: string,
+): { ok: true } | { ok: false; error: "forbidden" | "no_such_user" } {
+  const teams = new TeamRepository(db());
+  if (teams.roleOf(teamId, byUserId) !== "owner") return { ok: false, error: "forbidden" };
+  const user = new UserRepository(db()).getByLogin(login.trim());
+  if (!user) return { ok: false, error: "no_such_user" };
+  teams.addMember(teamId, user.id);
+  return { ok: true };
+}
+
+export type { HubStats, ContextCard, CardBrief, UserSummary, User, Team, TeamStats };

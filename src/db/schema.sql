@@ -79,6 +79,35 @@ CREATE TABLE IF NOT EXISTS card_authors (
 
 CREATE INDEX IF NOT EXISTS idx_card_authors_user ON card_authors(user_id);
 
+-- Teams (organizations / collaboration groups).
+CREATE TABLE IF NOT EXISTS teams (
+  id TEXT PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL
+);
+
+-- Team membership (user belongs to a team with a role).
+CREATE TABLE IF NOT EXISTS team_members (
+  team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'member',  -- owner | member
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (team_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members(user_id);
+
+-- Cards shared to a team (team-visibility). Additive join, like card_authors.
+CREATE TABLE IF NOT EXISTS card_teams (
+  card_id TEXT PRIMARY KEY REFERENCES context_cards(id) ON DELETE CASCADE,
+  team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_teams_team ON card_teams(team_id);
+
 -- Keyword search (contentless FTS5). Kept in sync from app code, not triggers.
 CREATE VIRTUAL TABLE IF NOT EXISTS context_cards_fts USING fts5(
   id UNINDEXED,

@@ -105,6 +105,10 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 - **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool, with stack and min-confidence filters.
 - **Leaderboard** (`/leaderboard`) — contributors ranked by reputation.
 - **Profiles** (`/profile`, `/u/[login]`) — a user's contributions and stats.
+- **Teams** (`/teams`, `/teams/[slug]`) — group contributors; owner-managed
+  membership and a combined team reputation/stats view (Phase 3). Drafts can be
+  published with **team visibility** — such cards are visible only to team
+  members (enforced across detail, browse, search, and profiles).
 - **Authoring** (`/new`, `/drafts`, `/drafts/[id]`) — a signed-in user drafts a card
   (secrets auto-redacted, fields auto-extracted), reviews it privately, and
   publishes it through a secret-scan approval gate.

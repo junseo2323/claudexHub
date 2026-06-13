@@ -9,6 +9,10 @@ import {
   markCardStaleForUser,
   recordFeedbackForCard,
   deleteCardForUser,
+  createTeamForUser,
+  addTeamMemberByLogin,
+  getTeamBySlug,
+  publishDraftToTeam,
 } from "./hub";
 
 function lines(value: FormDataEntryValue | null): string[] {
@@ -87,6 +91,18 @@ export async function editCardAction(formData: FormData) {
   redirect(`/cards/${cardId}`);
 }
 
+export async function publishToTeamAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const cardId = str(formData, "cardId");
+  const teamId = str(formData, "teamId");
+  if (!teamId) redirect(`/drafts/${cardId}`);
+  const result = await publishDraftToTeam(cardId, user.id, teamId);
+  if (!result.ok) redirect(`/drafts/${cardId}?error=secrets`);
+  redirect(`/cards/${cardId}`);
+}
+
 export async function recordFeedbackAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -97,6 +113,26 @@ export async function recordFeedbackAction(formData: FormData) {
     await recordFeedbackForCard(cardId, outcome);
   }
   redirect(`/cards/${cardId}?feedback=1`);
+}
+
+export async function createTeamAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const name = str(formData, "name");
+  if (!name) redirect("/teams?error=missing");
+  const team = createTeamForUser(user.id, name);
+  redirect(`/teams/${team.slug}`);
+}
+
+export async function addTeamMemberAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const slug = str(formData, "slug");
+  const login = str(formData, "login");
+  const team = getTeamBySlug(slug);
+  if (!team) redirect("/teams");
+  const res = addTeamMemberByLogin(team.id, user.id, login);
+  redirect(`/teams/${slug}${res.ok ? "" : `?error=${res.error}`}`);
 }
 
 export async function deleteCardAction(formData: FormData) {

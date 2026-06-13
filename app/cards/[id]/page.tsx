@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPublicCard, getAuthorId, getUser, relatedCards } from "../../lib/hub";
+import { getViewableCard, getAuthorId, getUser, relatedCards } from "../../lib/hub";
 import { getCurrentUser } from "../../lib/auth";
 import { markStaleAction, recordFeedbackAction } from "../../lib/actions";
 import { Avatar, EnvChips, RiskBadge, riskFromConfidence, BriefRow } from "../../components";
@@ -31,15 +31,15 @@ export default async function CardDetail({
 }) {
   const { id } = await params;
   const { feedback } = await searchParams;
-  const card = getPublicCard(id);
+  const me = await getCurrentUser();
+  const card = getViewableCard(id, me?.id);
   if (!card) notFound();
 
   const authorId = getAuthorId(card.id);
   const author = authorId ? getUser(authorId) : undefined;
-  const me = await getCurrentUser();
   const isOwner = !!me && me.id === authorId;
   const stale = card.status === "stale" || card.status === "deprecated";
-  const related = await relatedCards(card.id, 3);
+  const related = await relatedCards(card.id, me?.id, 3);
 
   return (
     <>
@@ -60,6 +60,7 @@ export default async function CardDetail({
       <div className="meta" style={{ marginTop: 10 }}>
         <span className="conf">confidence {card.confidenceScore}</span>
         <RiskBadge risk={riskFromConfidence(card.confidenceScore)} />
+        {card.visibility === "team" && <span className="chip">🔒 team</span>}
         <EnvChips env={card.environment} />
         {card.successfulReuseCount + card.failedReuseCount > 0 && (
           <span className="chip good">
