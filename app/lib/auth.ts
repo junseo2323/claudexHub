@@ -1,0 +1,66 @@
+import crypto from "node:crypto";
+import { cookies } from "next/headers";
+import { getDb } from "../../src/db/connection.js";
+import { migrate } from "../../src/db/migrate.js";
+import { UserRepository, type User } from "../../src/domain/users.js";
+
+const COOKIE = "ctxhub_session";
+const SECRET = process.env.AUTH_SECRET ?? "dev-insecure-secret-change-me";
+const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+
+export const githubConfigured = Boolean(
+  process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET,
+);
+/** Local demo login is allowed when explicitly enabled, or GitHub isn't set up. */
+export const devLoginEnabled = process.env.AUTH_ALLOW_DEV === "1" || !githubConfigured;
+
+function hmac(value: string): string {
+  return crypto.createHmac("sha256", SECRET).update(value).digest("base64url");
+}
+
+/** Create a signed `userId:expiry` session token. */
+export function makeSessionToken(userId: string): string {
+  const value = `${userId}:${Date.now() + MAX_AGE * 1000}`;
+  return `${value}.${hmac(value)}`;
+}
+
+function verify(token: string): string | null {
+  const dot = token.lastIndexOf(".");
+  if (dot < 0) return null;
+  const value = token.slice(0, dot);
+  const mac = token.slice(dot + 1);
+  const expected = hmac(value);
+  if (
+    mac.length !== expected.length ||
+    !crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(expected))
+  ) {
+    return null;
+  }
+  const [userId, expStr] = value.split(":");
+  if (!userId || !expStr || Date.now() > Number(expStr)) return null;
+  return userId;
+}
+
+export const sessionCookie = {
+  name: COOKIE,
+  options: {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: MAX_AGE,
+    secure: process.env.NODE_ENV === "production",
+  },
+};
+
+export async function getCurrentUser(): Promise<User | null> {
+  const store = await cookies();
+  const token = store.get(COOKIE)?.value;
+  if (!token) return null;
+  const userId = verify(token);
+  if (!userId) return null;
+  const db = getDb();
+  migrate(db);
+  return new UserRepository(db).getById(userId) ?? null;
+}
+
+export type { User };
