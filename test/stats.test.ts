@@ -49,6 +49,8 @@ describe("hubStats", () => {
     const codex = s.agentBreakdown.find((x) => x.agent === "codex")!;
     expect(codex.uses).toBe(2);
     expect(codex.failures).toBe(1);
+    expect(codex.successRate).toBeCloseTo(0.5, 5);
+    expect(codex.avgTokensSaved).toBe(4500);
   });
 
   it("counts stale cards and reflects them in the ratio", async () => {

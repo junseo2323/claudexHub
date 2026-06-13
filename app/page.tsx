@@ -55,9 +55,10 @@ export default function Dashboard() {
               <tr>
                 <th>Agent</th>
                 <th>Uses</th>
-                <th>Success</th>
+                <th>Success rate</th>
                 <th>Failed</th>
                 <th>Tokens saved</th>
+                <th>Avg saved</th>
               </tr>
             </thead>
             <tbody>
@@ -65,9 +66,10 @@ export default function Dashboard() {
                 <tr key={a.agent}>
                   <td>{a.agent}</td>
                   <td>{a.uses}</td>
-                  <td>{a.successes}</td>
+                  <td>{pct(a.successRate)} ({a.successes})</td>
                   <td>{a.failures}</td>
                   <td>{a.tokensSaved.toLocaleString()}</td>
+                  <td>{a.avgTokensSaved.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

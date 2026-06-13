@@ -14,7 +14,9 @@ export interface AgentBreakdown {
   uses: number;
   successes: number;
   failures: number;
+  successRate: number;
   tokensSaved: number;
+  avgTokensSaved: number;
 }
 
 export interface HubStats {
@@ -125,7 +127,9 @@ export function hubStats(db: DB, topN = 8): HubStats {
     uses: r.uses,
     successes: r.successes,
     failures: r.failures,
+    successRate: r.uses > 0 ? r.successes / r.uses : 0,
     tokensSaved: r.tokens_saved,
+    avgTokensSaved: r.uses > 0 ? Math.round(r.tokens_saved / r.uses) : 0,
   }));
 
   return {

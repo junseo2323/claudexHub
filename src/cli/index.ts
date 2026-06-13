@@ -247,7 +247,11 @@ program
     if (s.agentBreakdown.length) {
       console.log("Agents:");
       for (const a of s.agentBreakdown) {
-        console.log(`  ${a.agent}: ${a.uses} uses, ${a.successes} ok / ${a.failures} failed, ${a.tokensSaved.toLocaleString()} tokens saved`);
+        console.log(
+          `  ${a.agent}: ${a.uses} uses, ${pct(a.successRate)} success, ` +
+            `${a.successes} ok / ${a.failures} failed, ${a.tokensSaved.toLocaleString()} tokens saved ` +
+            `(${a.avgTokensSaved.toLocaleString()} avg/use)`,
+        );
       }
     }
   });
