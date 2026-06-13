@@ -1,6 +1,6 @@
 # TODO / Deferred
 
-Tracked follow-ups. Phases 1–4 are merged to `main` (CI green).
+Tracked follow-ups. Phases 1–5 are merged to `main` (CI green).
 
 ## Phase 4 polish (optional, low priority)
 
@@ -20,8 +20,23 @@ Tracked follow-ups. Phases 1–4 are merged to `main` (CI green).
       `phase-4-ranking`, `phase-4-insights`, `phase-4-freshness`.
       (Deferred to avoid disrupting parallel work in flight.)
 
+## Phase 5 — deployment & hardening
+
+Done: `/api/health` readiness probe + production config checks
+(`src/runtime-checks.ts`), security headers, `Dockerfile` + `DEPLOYMENT.md`,
+per-IP auth rate limiting (`src/rate-limit.ts`).
+
+Remaining:
+
+- [ ] **Real GitHub OAuth E2E** — verify the live `/api/auth/github` round trip
+      against a registered OAuth app (needs real `GITHUB_CLIENT_ID`/`SECRET`;
+      can't be exercised in CI).
+- [ ] **Observability** — structured request logging + a request id.
+- [ ] **CI Docker build** — add a workflow job that builds the `Dockerfile`.
+- [ ] **Multi-instance** — move sessions + rate-limit state to a shared store
+      (e.g. Redis) so more than one replica can run.
+
 ## Future phases
 
-- [ ] **Phase 5** — hosted deployment, real GitHub OAuth app wiring
-      (`GITHUB_CLIENT_ID`/`SECRET` are already supported, just unconfigured),
-      and multi-tenant hardening.
+- [ ] **Phase 6** — richer collaboration (team card lists, member removal UI,
+      org-level roles) and analytics over time.
