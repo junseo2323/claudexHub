@@ -1,12 +1,31 @@
 import type { DB } from "../db/connection.js";
 import { config } from "../config.js";
 import { getEmbeddingProvider } from "../embeddings/provider.js";
-import type { CardBrief, SearchInput } from "./types.js";
+import type { CardBrief, SearchInput, ContextCard } from "./types.js";
 import { Repository } from "./repository.js";
 import { buildBrief, type MatchSignals } from "./brief.js";
 
 /** Statuses an agent is allowed to retrieve via search. */
 const SEARCHABLE_STATUSES = new Set(["published", "approved"]);
+
+/**
+ * Track-record multiplier applied to a card's match relevance so battle-tested,
+ * high-confidence cards outrank equally-matching but unproven ones. Bounded so
+ * relevance still dominates ordering. Phase 4: data-informed ranking.
+ */
+export function trackRecordFactor(card: ContextCard): number {
+  let f = 1;
+  // Intrinsic confidence (source quality, verification, recency) — ±0.15.
+  f += ((card.confidenceScore - 50) / 50) * 0.15;
+  // Realized reuse outcomes, weighted by how much evidence we have — ±0.1.
+  const total = card.successfulReuseCount + card.failedReuseCount;
+  if (total > 0) {
+    const ratio = card.successfulReuseCount / total;
+    const evidence = Math.min(total / 3, 1);
+    f += (ratio - 0.5) * 0.2 * evidence;
+  }
+  return Math.min(Math.max(f, 0.6), 1.25);
+}
 
 /** Escape FTS5 special chars and OR-join terms for a forgiving keyword query. */
 function toFtsQuery(text: string): string {
@@ -129,6 +148,9 @@ export class SearchService {
 
       // Same-repo evidence boost.
       if (repoCardIds.has(id)) fused = Math.min(fused + 0.05, 1);
+
+      // Lift proven / high-confidence cards; demote ones with a poor track record.
+      fused = Math.min(fused * trackRecordFactor(card), 1);
 
       const cardTerms = new Set(tokenize(`${card.title} ${card.problem}`));
       const overlapTerms = [...queryTerms].filter((t) => cardTerms.has(t));
