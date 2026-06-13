@@ -61,6 +61,7 @@ Changing the provider or `EMBED_DIM` requires `npm run reindex`.
 
 ```bash
 npm run cli -- list
+npm run cli -- draft --file ./worklog.md --problem "OAuth cookie missing in production" --repo junseo2323/claudexHub --source conversation
 npm run cli -- search "kakao oauth cookie not stored" --stack "Next.js,NestJS"
 npm run cli -- get <card_id> --mode agent_json
 npm run cli -- create --json ./card.json

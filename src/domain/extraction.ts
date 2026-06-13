@@ -240,7 +240,13 @@ export function extractDraft(input: DraftExtractionInput): ExtractedDraft {
   const contentLines = lines(content);
   const symptoms = dedupeCap(
     contentLines
-      .filter((l) => ERROR_SIGNALS.test(l) && !FIX_MARKER.test(l) && !CAUSE_MARKER.test(l))
+      .filter(
+        (l) =>
+          ERROR_SIGNALS.test(l) &&
+          !FIX_MARKER.test(l) &&
+          !CAUSE_MARKER.test(l) &&
+          !ATTEMPT_MARKER.test(l),
+      )
       .map((l) => l.slice(0, 200)),
     5,
   );

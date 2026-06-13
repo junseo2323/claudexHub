@@ -4,9 +4,12 @@ import { getDb } from "../db/connection.js";
 import { migrate } from "../db/migrate.js";
 import { Repository } from "../domain/repository.js";
 import { SearchService } from "../domain/search.js";
-import { cardInputSchema } from "../domain/card-schema.js";
+import { cardInputSchema, evidenceSourceSchema } from "../domain/card-schema.js";
 import { hubStats } from "../domain/stats.js";
 import { config } from "../config.js";
+import { extractDraft } from "../domain/extraction.js";
+import { redact, redactCard, mergeReports, reportFromFindings } from "../domain/redaction.js";
+import type { CardInput } from "../domain/card-schema.js";
 
 function repo(): Repository {
   const db = getDb();
@@ -26,6 +29,87 @@ program
     const card = await repo().createCard(input);
     console.log(JSON.stringify(card, null, 2));
   });
+
+program
+  .command("draft")
+  .description("Create a redacted draft from a local Claude/Codex log, diff, or worklog file")
+  .requiredOption("--file <path>", "Path to the log/diff/worklog file")
+  .requiredOption("--problem <summary>", "Short problem summary")
+  .option("--source <source>", "worklog|diff|conversation|manual|commit|pr|issue|test|official_doc", "conversation")
+  .option("--title <title>", "Card title; derived from --problem when omitted")
+  .option("--repo <repo>", "GitHub repo slug or URL; enables PR/issue/commit link inference")
+  .option("--commit <sha>", "Commit sha to attach as source evidence")
+  .option("--files <files>", "Comma-separated related file paths")
+  .option("--fix <items>", "Pipe-separated verified fix bullets")
+  .option("--source-links <urls>", "Comma-separated source URLs to attach")
+  .option("--json", "Output raw JSON")
+  .action(
+    async (opts: {
+      file: string;
+      problem: string;
+      source: string;
+      title?: string;
+      repo?: string;
+      commit?: string;
+      files?: string;
+      fix?: string;
+      sourceLinks?: string;
+      json?: boolean;
+    }) => {
+      const source = evidenceSourceSchema.parse(opts.source);
+      const content = readFileSync(opts.file, "utf8");
+      const files = opts.files?.split(",").map((f) => f.trim()).filter(Boolean);
+      const explicitLinks = opts.sourceLinks?.split(",").map((l) => l.trim()).filter(Boolean) ?? [];
+      const extracted = extractDraft({
+        problemSummary: opts.problem,
+        content,
+        repo: opts.repo,
+        commitSha: opts.commit,
+      });
+      const sourceLinks = [...new Set([...explicitLinks, ...extracted.sourceLinks])];
+      const rawInput: CardInput = cardInputSchema.parse({
+        title: opts.title ?? extracted.title,
+        problem: opts.problem,
+        environment: extracted.environment,
+        symptoms: extracted.symptoms,
+        likelyCauses: extracted.likelyCauses,
+        failedAttempts: extracted.failedAttempts,
+        verifiedFix: opts.fix?.split("|").map((f) => f.trim()).filter(Boolean) ?? extracted.verifiedFix,
+        verification: [],
+        agentHint: "",
+        sourceLinks,
+        visibility: "private",
+        status: "draft",
+      });
+      const { card: redactedInput, report: cardReport } = redactCard(rawInput);
+      const r = repo();
+      const created = await r.createCard(redactedInput as CardInput);
+      const { redacted, findings } = redact(content);
+      const evidenceReport = reportFromFindings(findings.map((f) => ({ ...f, field: "evidence" })));
+      r.addEvidence(created.id, {
+        source,
+        repo: opts.repo,
+        commitSha: opts.commit ?? extracted.report.commitSha,
+        url: sourceLinks[0],
+        files,
+        content: redacted,
+      });
+      const output = {
+        id: created.id,
+        status: created.status,
+        source_links: created.sourceLinks,
+        redaction_report: mergeReports(cardReport, evidenceReport),
+        extraction_report: extracted.report,
+      };
+      if (opts.json) {
+        console.log(JSON.stringify(output, null, 2));
+        return;
+      }
+      console.log(`Drafted ${created.id} (${created.status})`);
+      if (created.sourceLinks.length) console.log(`Sources: ${created.sourceLinks.join(", ")}`);
+      console.log(`Redactions: ${output.redaction_report.findingsCount}`);
+    },
+  );
 
 program
   .command("list")

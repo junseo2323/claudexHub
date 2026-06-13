@@ -41,6 +41,7 @@ describe("extractDraft", () => {
     });
     expect(d.failedAttempts.length).toBeGreaterThanOrEqual(2);
     expect(d.verifiedFix.some((f) => /SameSite/.test(f))).toBe(true);
+    expect(d.symptoms.some((s) => /clearing the CloudFront cache/.test(s))).toBe(false);
   });
 
   it("captures likely causes and keeps them out of symptoms", () => {
