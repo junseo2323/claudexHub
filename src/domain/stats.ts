@@ -1,5 +1,7 @@
 import type { DB } from "../db/connection.js";
 import { Repository } from "./repository.js";
+import { UserRepository, type User } from "./users.js";
+import type { ContextCard } from "./types.js";
 
 export interface StackCount {
   stack: string;
@@ -171,4 +173,103 @@ export function reputationScore(input: {
     input.failedReuseCount * 4 -
     input.cardsStale * 2;
   return Math.round(score);
+}
+
+export interface UserSummary {
+  user: User;
+  cardsAuthored: number;
+  cardsPublished: number;
+  cardsStale: number;
+  verifiedFixCount: number;
+  successfulReuse: number;
+  failedReuse: number;
+  tokensSaved: number;
+  reputationScore: number;
+}
+
+const STALE_STATUSES = new Set(["stale", "deprecated"]);
+
+/** Aggregate per-user contribution metrics over authored cards + reuse ledger. */
+function summarize(db: DB): Map<string, UserSummary> {
+  const users = new UserRepository(db).listAll();
+  const summaries = new Map<string, UserSummary>();
+  for (const user of users) {
+    summaries.set(user.id, {
+      user,
+      cardsAuthored: 0,
+      cardsPublished: 0,
+      cardsStale: 0,
+      verifiedFixCount: 0,
+      successfulReuse: 0,
+      failedReuse: 0,
+      tokensSaved: 0,
+      reputationScore: 0,
+    });
+  }
+
+  const cardRows = db
+    .prepare(
+      `SELECT ca.user_id AS uid, c.status AS status, c.verification AS verification
+       FROM card_authors ca JOIN context_cards c ON c.id = ca.card_id`,
+    )
+    .all() as { uid: string; status: string; verification: string | null }[];
+  for (const r of cardRows) {
+    const s = summaries.get(r.uid);
+    if (!s) continue;
+    s.cardsAuthored += 1;
+    if (r.status === "published") s.cardsPublished += 1;
+    if (STALE_STATUSES.has(r.status)) s.cardsStale += 1;
+    const verified = r.verification ? (JSON.parse(r.verification) as unknown[]).length > 0 : false;
+    if (r.status === "published" && verified) s.verifiedFixCount += 1;
+  }
+
+  const usageRows = db
+    .prepare(
+      `SELECT ca.user_id AS uid, au.outcome AS outcome, au.estimated_tokens_saved AS saved
+       FROM card_authors ca JOIN agent_usage au ON au.card_id = ca.card_id`,
+    )
+    .all() as { uid: string; outcome: string; saved: number }[];
+  for (const r of usageRows) {
+    const s = summaries.get(r.uid);
+    if (!s) continue;
+    if (r.outcome === "failed") s.failedReuse += 1;
+    else s.successfulReuse += 1;
+    s.tokensSaved += r.saved;
+  }
+
+  for (const s of summaries.values()) {
+    s.reputationScore = reputationScore({
+      verifiedFixCount: s.verifiedFixCount,
+      successfulReuseCount: s.successfulReuse,
+      totalEstimatedTokensSaved: s.tokensSaved,
+      failedReuseCount: s.failedReuse,
+      cardsStale: s.cardsStale,
+    });
+  }
+  return summaries;
+}
+
+/** Users ranked by reputation score (leaderboard). */
+export function leaderboard(db: DB): UserSummary[] {
+  return [...summarize(db).values()].sort(
+    (a, b) => b.reputationScore - a.reputationScore || b.cardsPublished - a.cardsPublished,
+  );
+}
+
+/** A single user's contribution summary plus their public-facing cards. */
+export function userStats(
+  db: DB,
+  userId: string,
+): { summary: UserSummary; cards: ContextCard[] } | undefined {
+  const summary = summarize(db).get(userId);
+  if (!summary) return undefined;
+  const ids = db
+    .prepare("SELECT card_id FROM card_authors WHERE user_id = ?")
+    .all(userId) as { card_id: string }[];
+  const repo = new Repository(db);
+  const cards = ids
+    .map((r) => repo.getCard(r.card_id))
+    .filter((c): c is ContextCard => !!c && STALE_STATUSES.has(c.status) === false && c.status === "published")
+    .sort((a, b) => b.confidenceScore - a.confidenceScore);
+  return { summary, cards };
 }

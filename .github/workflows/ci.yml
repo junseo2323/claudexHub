@@ -27,3 +27,8 @@ jobs:
         run: npm test
         env:
           EMBEDDING_PROVIDER: noop
+
+      - name: Build web (Next.js)
+        run: npm run web:build
+        env:
+          EMBEDDING_PROVIDER: noop

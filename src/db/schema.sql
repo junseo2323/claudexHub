@@ -59,6 +59,26 @@ CREATE TABLE IF NOT EXISTS agent_usage (
 
 CREATE INDEX IF NOT EXISTS idx_usage_card ON agent_usage(card_id);
 
+-- Users (GitHub-authenticated, or local "dev" users for the prototype).
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  github_id TEXT UNIQUE,
+  login TEXT NOT NULL UNIQUE,
+  name TEXT,
+  avatar_url TEXT,
+  created_at TEXT NOT NULL
+);
+
+-- Card authorship (one author per card). Additive: keeps the card write path
+-- untouched. A card with no row here is unattributed.
+CREATE TABLE IF NOT EXISTS card_authors (
+  card_id TEXT PRIMARY KEY REFERENCES context_cards(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_authors_user ON card_authors(user_id);
+
 -- Keyword search (contentless FTS5). Kept in sync from app code, not triggers.
 CREATE VIRTUAL TABLE IF NOT EXISTS context_cards_fts USING fts5(
   id UNINDEXED,
