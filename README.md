@@ -206,3 +206,4 @@ config error (e.g. a default `AUTH_SECRET`) is present.
 - Redaction runs on draft creation **and** again as a publish-time gate.
 - The web app sets baseline security headers and validates production config
   (see `src/runtime-checks.ts`).
+- Auth routes are rate-limited per IP (`src/rate-limit.ts`).

@@ -1,10 +1,18 @@
 import crypto from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { githubConfigured } from "../../../lib/auth";
+import { rateLimitAuth } from "../../../lib/limits";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
+  const rl = rateLimitAuth(req.headers);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited" },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } },
+    );
+  }
   if (!githubConfigured) {
     return NextResponse.json({ error: "GitHub OAuth is not configured" }, { status: 501 });
   }
