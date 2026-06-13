@@ -1,4 +1,5 @@
-import { listPublicCards, getStats } from "../lib/hub";
+import { listViewableCards, getStats } from "../lib/hub";
+import { getCurrentUser } from "../lib/auth";
 import { CardRow } from "../components";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +14,9 @@ export default async function CardsPage({
 }) {
   const { stack = "", status = "all" } = await searchParams;
   const stackQ = stack.trim().toLowerCase();
+  const me = await getCurrentUser();
 
-  let cards = listPublicCards();
+  let cards = listViewableCards(me?.id);
   if (status === "published") cards = cards.filter((c) => c.status === "published");
   else if (status === "stale") cards = cards.filter((c) => STALE.has(c.status));
   if (stackQ) {

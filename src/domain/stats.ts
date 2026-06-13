@@ -270,7 +270,9 @@ export function userStats(
   const repo = new Repository(db);
   const cards = ids
     .map((r) => repo.getCard(r.card_id))
-    .filter((c): c is ContextCard => !!c && STALE_STATUSES.has(c.status) === false && c.status === "published")
+    .filter(
+      (c): c is ContextCard => !!c && c.status === "published" && c.visibility === "public",
+    )
     .sort((a, b) => b.confidenceScore - a.confidenceScore);
   return { summary, cards };
 }

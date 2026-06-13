@@ -12,6 +12,7 @@ import {
   createTeamForUser,
   addTeamMemberByLogin,
   getTeamBySlug,
+  publishDraftToTeam,
 } from "./hub";
 
 function lines(value: FormDataEntryValue | null): string[] {
@@ -87,6 +88,18 @@ export async function editCardAction(formData: FormData) {
     agentHint: str(formData, "agentHint"),
   });
 
+  redirect(`/cards/${cardId}`);
+}
+
+export async function publishToTeamAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const cardId = str(formData, "cardId");
+  const teamId = str(formData, "teamId");
+  if (!teamId) redirect(`/drafts/${cardId}`);
+  const result = await publishDraftToTeam(cardId, user.id, teamId);
+  if (!result.ok) redirect(`/drafts/${cardId}?error=secrets`);
   redirect(`/cards/${cardId}`);
 }
 

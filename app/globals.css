@@ -392,6 +392,14 @@ th {
   padding: 9px 12px;
   font-size: 14px;
 }
+.stale-form select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 14px;
+}
 
 /* Filter bars (browse + search) */
 .filter-bar {

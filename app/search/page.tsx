@@ -1,4 +1,5 @@
 import { search } from "../lib/hub";
+import { getCurrentUser } from "../lib/auth";
 import { BriefRow } from "../components";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +15,10 @@ export default async function SearchPage({
   const min = sp.min ? Number(sp.min) : undefined;
   const stack = (sp.stack ?? "").trim();
   const stackList = stack ? stack.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+  const me = await getCurrentUser();
 
   const results = q
-    ? await search({ query: q, stack: stackList, minConfidence: min, limit: 10 })
+    ? await search({ query: q, stack: stackList, minConfidence: min, limit: 10 }, me?.id)
     : [];
 
   return (

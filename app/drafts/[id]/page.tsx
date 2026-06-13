@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
-import { getDraftForUser, scanCard } from "../../lib/hub";
-import { publishDraftAction } from "../../lib/actions";
+import { getDraftForUser, scanCard, listTeamsForUser } from "../../lib/hub";
+import { publishDraftAction, publishToTeamAction } from "../../lib/actions";
 import { EnvChips } from "../../components";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +38,7 @@ export default async function DraftReview({
 
   const scan = scanCard(card);
   const clean = scan.findingsCount === 0;
+  const myTeams = listTeamsForUser(me.id);
 
   return (
     <>
@@ -74,13 +75,33 @@ export default async function DraftReview({
         )}
       </div>
 
-      <form action={publishDraftAction} className="section">
-        <input type="hidden" name="cardId" value={card.id} />
-        <button type="submit" className="btn" disabled={!clean}>
-          Publish publicly
-        </button>
+      <div className="section panel">
+        <h3 style={{ marginTop: 0 }}>Publish</h3>
+        <form action={publishDraftAction} style={{ marginBottom: myTeams.length ? 16 : 0 }}>
+          <input type="hidden" name="cardId" value={card.id} />
+          <button type="submit" className="btn" disabled={!clean}>
+            Publish publicly
+          </button>
+        </form>
+
+        {myTeams.length > 0 && (
+          <form action={publishToTeamAction} className="stale-form">
+            <input type="hidden" name="cardId" value={card.id} />
+            <select name="teamId" defaultValue={myTeams[0].id}>
+              {myTeams.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="btn secondary" disabled={!clean}>
+              🔒 Publish to team
+            </button>
+          </form>
+        )}
+
         {!clean && <p className="subtle">Resolve detected secrets before publishing.</p>}
-      </form>
+      </div>
     </>
   );
 }
