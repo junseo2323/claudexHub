@@ -105,6 +105,9 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 - **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool.
 - **Leaderboard** (`/leaderboard`) — contributors ranked by reputation.
 - **Profiles** (`/profile`, `/u/[login]`) — a user's contributions and stats.
+- **Authoring** (`/new`, `/drafts`, `/drafts/[id]`) — a signed-in user drafts a card
+  (secrets auto-redacted, fields auto-extracted), reviews it privately, and
+  publishes it through a secret-scan approval gate.
 
 ### Authentication
 
@@ -115,8 +118,9 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 - Sessions are stateless HMAC-signed httpOnly cookies. Cards are attributed via a
   `card_authors` table; reputation is the same Rank Score, scoped per author.
 
-The first slice is read-only (browse/search/profiles); write/publish flows are not
-exposed in the web UI yet.
+Authoring uses Next.js Server Actions and reuses the same domain extraction +
+redaction as the MCP `draft_context_card` / `publish_context_card` tools, so the
+publish gate behaves identically across surfaces.
 
 ```bash
 npm run migrate && npm run seed   # ensure the local DB has data

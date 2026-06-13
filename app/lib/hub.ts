@@ -4,6 +4,9 @@ import { getDb } from "../../src/db/connection.js";
 import { migrate } from "../../src/db/migrate.js";
 import { Repository } from "../../src/domain/repository.js";
 import { SearchService } from "../../src/domain/search.js";
+import { extractDraft } from "../../src/domain/extraction.js";
+import { redactCard, type RedactionReport } from "../../src/domain/redaction.js";
+import { cardInputSchema, type CardInput } from "../../src/domain/card-schema.js";
 import {
   hubStats,
   leaderboard,
@@ -80,6 +83,91 @@ export function getOrCreateDevUser(login: string): User {
 
 export function getUserStats(userId: string) {
   return userStats(db(), userId);
+}
+
+const DRAFT_STATUSES = new Set(["draft", "approved"]);
+
+export interface NewDraftInput {
+  title: string;
+  problem: string;
+  content?: string;
+  environment?: Record<string, string>;
+  verifiedFix?: string[];
+}
+
+/** Create a redacted draft owned by `userId`, reusing the domain extraction. */
+export async function createDraftForUser(
+  userId: string,
+  input: NewDraftInput,
+): Promise<{ card: ContextCard; redaction: RedactionReport }> {
+  const d = db();
+  const repo = new Repository(d);
+  const extracted = extractDraft({
+    problemSummary: input.problem,
+    content: input.content,
+    environment: input.environment,
+  });
+  const raw: CardInput = cardInputSchema.parse({
+    title: input.title || extracted.title,
+    problem: input.problem,
+    environment: extracted.environment,
+    symptoms: extracted.symptoms,
+    likelyCauses: extracted.likelyCauses,
+    failedAttempts: extracted.failedAttempts,
+    verifiedFix: input.verifiedFix?.length ? input.verifiedFix : extracted.verifiedFix,
+    verification: [],
+    agentHint: "",
+    sourceLinks: [],
+    visibility: "private",
+    status: "draft",
+  });
+  const { card: redacted, report } = redactCard(raw);
+  const created = await repo.createCard(redacted as CardInput);
+  new UserRepository(d).setCardAuthor(created.id, userId);
+  if (input.content) {
+    const { redact } = await import("../../src/domain/redaction.js");
+    const { redacted: safeContent } = redact(input.content);
+    repo.addEvidence(created.id, { source: "manual", content: safeContent });
+  }
+  return { card: created, redaction: report };
+}
+
+/** A draft the given user owns (for review). Undefined if not theirs / not a draft. */
+export function getDraftForUser(cardId: string, userId: string): ContextCard | undefined {
+  const card = new Repository(db()).getCard(cardId);
+  if (!card || !DRAFT_STATUSES.has(card.status)) return undefined;
+  if (new UserRepository(db()).getCardAuthorId(cardId) !== userId) return undefined;
+  return card;
+}
+
+export function listDraftsForUser(userId: string): ContextCard[] {
+  const d = db();
+  const repo = new Repository(d);
+  const users = new UserRepository(d);
+  return repo
+    .listCards({ includeDrafts: true })
+    .filter((c) => DRAFT_STATUSES.has(c.status) && users.getCardAuthorId(c.id) === userId);
+}
+
+/** Re-scan a draft for secrets; on a clean scan, publish it publicly. */
+export async function publishDraftForUser(
+  cardId: string,
+  userId: string,
+): Promise<{ ok: true; card: ContextCard } | { ok: false; redaction: RedactionReport }> {
+  const card = getDraftForUser(cardId, userId);
+  if (!card) throw new Error("draft_not_found");
+  const { report } = redactCard(card);
+  if (report.findingsCount > 0) return { ok: false, redaction: report };
+  const updated = await new Repository(db()).updateCard(cardId, {
+    status: "published",
+    visibility: "public",
+    lastVerifiedAt: card.verification.length > 0 ? new Date().toISOString() : card.lastVerifiedAt,
+  });
+  return { ok: true, card: updated };
+}
+
+export function scanCard(card: ContextCard): RedactionReport {
+  return redactCard(card).report;
 }
 
 export type { HubStats, ContextCard, CardBrief, UserSummary, User };

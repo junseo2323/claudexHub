@@ -25,6 +25,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             <Link href="/leaderboard">Leaderboard</Link>
             {user ? (
               <>
+                <Link href="/new">New</Link>
+                <Link href="/drafts">Drafts</Link>
                 <Link href="/profile" className="nav-user">
                   <Avatar user={user} size={22} /> {user.login}
                 </Link>
