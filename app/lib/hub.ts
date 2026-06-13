@@ -19,6 +19,7 @@ import {
   type CalibrationBucket,
 } from "../../src/domain/stats.js";
 import { TeamRepository, type Team } from "../../src/domain/teams.js";
+import { needsReverification, daysSinceVerified, DEFAULT_REVERIFY_DAYS } from "../../src/domain/freshness.js";
 import { UserRepository, type User } from "../../src/domain/users.js";
 import type { ContextCard, CardBrief, SearchInput } from "../../src/domain/types.js";
 
@@ -54,6 +55,18 @@ export function getStats(): HubStats {
 
 export function getCalibration(): CalibrationBucket[] {
   return confidenceCalibration(db());
+}
+
+/** Count of published cards whose verification is older than the threshold. */
+export function getReverificationCount(maxDays = DEFAULT_REVERIFY_DAYS): number {
+  return new Repository(db())
+    .listCards()
+    .filter((c) => needsReverification(c, maxDays)).length;
+}
+
+/** Freshness of a single card's verification (for the detail view). */
+export function cardFreshness(card: ContextCard): { days: number | null; needsReverify: boolean } {
+  return { days: daysSinceVerified(card), needsReverify: needsReverification(card) };
 }
 
 /** Public-visibility cards only (dashboard / anonymous browse). */

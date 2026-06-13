@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getViewableCard, getAuthorId, getUser, relatedCards } from "../../lib/hub";
+import { getViewableCard, getAuthorId, getUser, relatedCards, cardFreshness } from "../../lib/hub";
 import { getCurrentUser } from "../../lib/auth";
 import { markStaleAction, recordFeedbackAction } from "../../lib/actions";
 import { Avatar, EnvChips, RiskBadge, riskFromConfidence, BriefRow } from "../../components";
@@ -39,6 +39,7 @@ export default async function CardDetail({
   const author = authorId ? getUser(authorId) : undefined;
   const isOwner = !!me && me.id === authorId;
   const stale = card.status === "stale" || card.status === "deprecated";
+  const fresh = cardFreshness(card);
   const related = await relatedCards(card.id, me?.id, 3);
 
   return (
@@ -46,6 +47,11 @@ export default async function CardDetail({
       {stale && (
         <div className="banner">
           ⚠ This card is marked <strong>{card.status}</strong> — its fix may be outdated. Verify before reuse.
+        </div>
+      )}
+      {!stale && fresh.needsReverify && (
+        <div className="banner">
+          🕒 Last verified {fresh.days} days ago — consider re-verifying that this fix still works.
         </div>
       )}
 
@@ -155,6 +161,7 @@ export default async function CardDetail({
       <div className="section subtle">
         Est. tokens saved per reuse: {card.estimatedTokensSaved.toLocaleString()} · Updated{" "}
         {new Date(card.updatedAt).toLocaleDateString()}
+        {fresh.days != null && ` · verified ${fresh.days}d ago`}
       </div>
 
       {isOwner && (
