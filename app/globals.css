@@ -447,3 +447,9 @@ th {
   padding: 8px 10px;
   font-size: 14px;
 }
+
+.feedback-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

@@ -7,6 +7,7 @@ import {
   publishDraftForUser,
   updateCardForUser,
   markCardStaleForUser,
+  recordFeedbackForCard,
 } from "./hub";
 
 function lines(value: FormDataEntryValue | null): string[] {
@@ -83,6 +84,18 @@ export async function editCardAction(formData: FormData) {
   });
 
   redirect(`/cards/${cardId}`);
+}
+
+export async function recordFeedbackAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const cardId = str(formData, "cardId");
+  const outcome = str(formData, "outcome");
+  if (outcome === "success" || outcome === "partial" || outcome === "failed") {
+    await recordFeedbackForCard(cardId, outcome);
+  }
+  redirect(`/cards/${cardId}?feedback=1`);
 }
 
 export async function markStaleAction(formData: FormData) {

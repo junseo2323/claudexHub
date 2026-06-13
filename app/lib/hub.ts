@@ -202,6 +202,19 @@ export async function updateCardForUser(
   return { card: updated, redaction: report };
 }
 
+/** Record a reuse outcome on a published card (web feedback). Feeds the
+ *  reuse counts, tokens-saved, confidence, and the author's reputation. */
+export async function recordFeedbackForCard(
+  cardId: string,
+  outcome: "success" | "partial" | "failed",
+): Promise<ContextCard> {
+  const repo = new Repository(db());
+  const card = repo.getCard(cardId);
+  if (!card || !PUBLIC_STATUSES.has(card.status)) throw new Error("card_not_found");
+  const { card: updated } = await repo.recordUsage(cardId, { agent: "other", outcome });
+  return updated;
+}
+
 /** Mark an authored card stale (no longer trusted). */
 export async function markCardStaleForUser(
   cardId: string,
