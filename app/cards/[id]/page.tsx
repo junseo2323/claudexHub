@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPublicCard } from "../../lib/hub";
-import { EnvChips, RiskBadge, riskFromConfidence } from "../../components";
+import { getPublicCard, getAuthorId, getUser } from "../../lib/hub";
+import { Avatar, EnvChips, RiskBadge, riskFromConfidence } from "../../components";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,6 +25,8 @@ export default async function CardDetail({ params }: { params: Promise<{ id: str
   const card = getPublicCard(id);
   if (!card) notFound();
 
+  const authorId = getAuthorId(card.id);
+  const author = authorId ? getUser(authorId) : undefined;
   const stale = card.status === "stale" || card.status === "deprecated";
 
   return (
@@ -35,6 +38,13 @@ export default async function CardDetail({ params }: { params: Promise<{ id: str
       )}
 
       <h1>{card.title}</h1>
+      {author && (
+        <div className="meta" style={{ marginTop: 6 }}>
+          <Link href={`/u/${author.login}`} className="nav-user subtle">
+            <Avatar user={author} size={20} /> by {author.name ?? author.login}
+          </Link>
+        </div>
+      )}
       <div className="meta" style={{ marginTop: 10 }}>
         <span className="conf">confidence {card.confidenceScore}</span>
         <RiskBadge risk={riskFromConfidence(card.confidenceScore)} />

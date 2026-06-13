@@ -96,13 +96,27 @@ claude mcp add context-hub --env EMBEDDING_PROVIDER=local -- npx tsx /abs/path/t
 Then in Claude Code: confirm the tools appear, and try
 `search_context("kakao oauth cookie not stored")`.
 
-## Web app (read-only)
+## Web app
 
 A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 
 - **Dashboard** (`/`) — hub stats, top stacks, agent activity, reputation score.
-- **Cards** (`/cards`, `/cards/[id]`) — browse published cards and view full detail.
+- **Cards** (`/cards`, `/cards/[id]`) — browse published cards and view full detail (with author).
 - **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool.
+- **Leaderboard** (`/leaderboard`) — contributors ranked by reputation.
+- **Profiles** (`/profile`, `/u/[login]`) — a user's contributions and stats.
+
+### Authentication
+
+- **GitHub OAuth** — set `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (OAuth app
+  callback `…/api/auth/github/callback`) and `AUTH_SECRET` (cookie signing key).
+- **Demo login** — when GitHub isn't configured (or `AUTH_ALLOW_DEV=1`), sign in
+  as a seeded demo author (alice/bob/carol) for local testing without secrets.
+- Sessions are stateless HMAC-signed httpOnly cookies. Cards are attributed via a
+  `card_authors` table; reputation is the same Rank Score, scoped per author.
+
+The first slice is read-only (browse/search/profiles); write/publish flows are not
+exposed in the web UI yet.
 
 ```bash
 npm run migrate && npm run seed   # ensure the local DB has data
