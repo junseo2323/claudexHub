@@ -1,0 +1,110 @@
+import { describe, it, expect, afterEach } from "vitest";
+import type { DB } from "../src/db/connection.js";
+import { Repository } from "../src/domain/repository.js";
+import { makeDraftContextCardHandler } from "../src/mcp/tools/draft-context-card.js";
+import { makePublishContextCardHandler } from "../src/mcp/tools/publish-context-card.js";
+import { makeGetContextCardHandler } from "../src/mcp/tools/get-context-card.js";
+import { freshDb } from "./helpers.js";
+
+function parse(result: { content: { text: string }[] }) {
+  return JSON.parse(result.content[0].text);
+}
+
+describe("MCP tool handlers", () => {
+  let db: DB;
+  afterEach(() => db?.close());
+
+  it("draft_context_card runs redaction and stores a draft", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const draft = makeDraftContextCardHandler(repo);
+
+    const res = await draft({
+      source: "conversation",
+      problem_summary: "Login broke",
+      content: "fixed it, db at postgres://user:pw@host/db and api_key: 'secret123456'",
+      verified_fix: ["set SameSite=None"],
+    });
+    const out = parse(res);
+    expect(out.status).toBe("draft");
+    expect(out.redaction_report.findingsCount).toBeGreaterThan(0);
+
+    // Evidence is stored redacted.
+    const ev = db.prepare("SELECT content FROM source_evidence WHERE card_id = ?").get(out.id) as
+      | { content: string }
+      | undefined;
+    expect(ev?.content).toContain("[REDACTED:");
+    expect(ev?.content).not.toContain("secret123456");
+  });
+
+  it("publish blocks when secrets remain in the card", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    // Insert a card that still contains a secret (bypassing draft redaction).
+    const card = await repo.createCard({
+      title: "Leaky",
+      problem: "token is ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+      environment: {},
+      symptoms: [],
+      likelyCauses: [],
+      failedAttempts: [],
+      verifiedFix: [],
+      verification: [],
+      agentHint: "",
+      sourceLinks: [],
+      visibility: "private",
+      status: "draft",
+    });
+
+    const publish = makePublishContextCardHandler(repo);
+    const res = await publish({ id: card.id, approve: true });
+    expect(res.isError).toBe(true);
+    expect(parse(res).error).toBe("secrets_detected");
+  });
+
+  it("publish requires approve=true", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const card = await repo.createCard({
+      title: "Clean", problem: "clean problem", environment: {}, symptoms: [], likelyCauses: [],
+      failedAttempts: [], verifiedFix: ["fix"], verification: [], agentHint: "", sourceLinks: [],
+      visibility: "private", status: "draft",
+    });
+    const publish = makePublishContextCardHandler(repo);
+    const res = await publish({ id: card.id, approve: false });
+    expect(res.isError).toBe(true);
+    expect(parse(res).error).toBe("approval_required");
+  });
+
+  it("publish then succeeds and flips status to published", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const card = await repo.createCard({
+      title: "Clean", problem: "clean problem", environment: {}, symptoms: [], likelyCauses: [],
+      failedAttempts: [], verifiedFix: ["fix"], verification: ["ok"], agentHint: "", sourceLinks: [],
+      visibility: "private", status: "draft",
+    });
+    const publish = makePublishContextCardHandler(repo);
+    const res = await publish({ id: card.id, approve: true, visibility: "public" });
+    expect(res.isError).toBeUndefined();
+    expect(parse(res).status).toBe("published");
+    expect(repo.getCard(card.id)?.visibility).toBe("public");
+  });
+
+  it("get_context_card agent_json returns a compact subset", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const card = await repo.createCard({
+      title: "T", problem: "P", environment: { frontend: "Next.js" }, symptoms: ["s"],
+      likelyCauses: ["c"], failedAttempts: ["f"], verifiedFix: ["fix"], verification: ["v"],
+      agentHint: "hint", sourceLinks: [], visibility: "public", status: "published",
+    });
+    const get = makeGetContextCardHandler(repo);
+    const res = await get({ id: card.id, mode: "agent_json" });
+    const out = parse(res);
+    expect(out).toHaveProperty("verified_fix");
+    expect(out).toHaveProperty("agent_hint");
+    // Compact: heavy fields like failedAttempts/symptoms are omitted.
+    expect(out).not.toHaveProperty("failedAttempts");
+  });
+});
