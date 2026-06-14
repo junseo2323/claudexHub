@@ -149,3 +149,16 @@ CREATE TABLE IF NOT EXISTS saved_searches (
 );
 
 CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id);
+
+-- In-app notifications (feedback received, card superseded, etc.).
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,         -- feedback | relation | system
+  message TEXT NOT NULL,
+  card_id TEXT REFERENCES context_cards(id) ON DELETE CASCADE,
+  read INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read);

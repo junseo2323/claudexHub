@@ -111,6 +111,8 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 - **Freshness** — a card verified long ago surfaces a "re-verify" nudge on its
   detail page (`src/domain/freshness.ts`).
 - **Profiles** (`/profile`, `/u/[login]`) — a user's contributions and stats.
+- **Notifications** (`/notifications`) — in-app alerts when someone gives your
+  card feedback or supersedes/duplicates it; an unread badge in the nav (Phase 7).
 - **Teams** (`/teams`, `/teams/[slug]`) — group contributors; owner-managed
   membership (add/remove), a combined team reputation/stats view, and the team's
   shared card list (Phase 3/6). Drafts can be published with **team visibility** —

@@ -115,7 +115,7 @@ export async function recordFeedbackAction(formData: FormData) {
   const cardId = str(formData, "cardId");
   const outcome = str(formData, "outcome");
   if (outcome === "success" || outcome === "partial" || outcome === "failed") {
-    await recordFeedbackForCard(cardId, outcome);
+    await recordFeedbackForCard(cardId, outcome, user.id);
   }
   redirect(`/cards/${cardId}?feedback=1`);
 }
