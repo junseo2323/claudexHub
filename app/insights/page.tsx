@@ -1,4 +1,4 @@
-import { getCalibration, getStats, getReverificationCount } from "../lib/hub";
+import { getActivity, getCalibration, getStats, getReverificationCount } from "../lib/hub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,7 +11,9 @@ export default function InsightsPage() {
   const buckets = getCalibration();
   const stats = getStats();
   const needsReverify = getReverificationCount();
+  const activity = getActivity(8);
   const maxRate = Math.max(0.01, ...buckets.map((b) => b.successRate ?? 0));
+  const maxActivity = Math.max(1, ...activity.map((w) => w.cardsCreated + w.reuseEvents));
 
   return (
     <>
@@ -59,6 +61,29 @@ export default function InsightsPage() {
         {stats.verifiedFixCount} verified fixes ·{" "}
         {needsReverify} card{needsReverify === 1 ? "" : "s"} may need re-verification.
       </p>
+
+      <h2>Activity (last 8 weeks)</h2>
+      <div className="panel">
+        <div className="bars">
+          {activity.map((w) => {
+            const total = w.cardsCreated + w.reuseEvents;
+            return (
+              <div className="bar-row wide" key={w.weekStart}>
+                <span>{w.weekStart}</span>
+                <span className="bar-track">
+                  <span className="bar-fill" style={{ width: `${(total / maxActivity) * 100}%` }} />
+                </span>
+                <span style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  {w.cardsCreated}c / {w.reuseEvents}r
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="subtle" style={{ marginTop: 10, marginBottom: 0 }}>
+          c = cards created · r = reuse events
+        </p>
+      </div>
     </>
   );
 }

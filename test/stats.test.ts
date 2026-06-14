@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import type { DB } from "../src/db/connection.js";
 import { Repository } from "../src/domain/repository.js";
 import { cardInputSchema } from "../src/domain/card-schema.js";
-import { hubStats, reputationScore, confidenceCalibration } from "../src/domain/stats.js";
+import { hubStats, reputationScore, confidenceCalibration, activityTimeline } from "../src/domain/stats.js";
 import { freshDb } from "./helpers.js";
 
 async function published(repo: Repository, title: string, env: Record<string, string> = {}) {
@@ -95,5 +95,21 @@ describe("hubStats", () => {
     expect(withReuse.successRate).toBeCloseTo(0.5, 5);
     // Buckets with no cards report a null success rate.
     expect(buckets.some((b) => b.cards === 0 && b.successRate === null)).toBe(true);
+  });
+
+  it("activityTimeline buckets recent cards + reuse into the latest week", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const c = await published(repo, "Recent");
+    await repo.recordUsage(c.id, { agent: "codex", outcome: "success" });
+
+    const weeks = activityTimeline(db, 8);
+    expect(weeks).toHaveLength(8);
+    // Just-created card + reuse land in the most recent bucket.
+    const last = weeks[weeks.length - 1];
+    expect(last.cardsCreated).toBe(1);
+    expect(last.reuseEvents).toBe(1);
+    // Older weeks are empty.
+    expect(weeks.slice(0, -1).every((w) => w.cardsCreated === 0 && w.reuseEvents === 0)).toBe(true);
   });
 });

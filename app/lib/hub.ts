@@ -13,10 +13,12 @@ import {
   userStats,
   teamStats,
   confidenceCalibration,
+  activityTimeline,
   type HubStats,
   type UserSummary,
   type TeamStats,
   type CalibrationBucket,
+  type ActivityWeek,
 } from "../../src/domain/stats.js";
 import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { needsReverification, daysSinceVerified, DEFAULT_REVERIFY_DAYS } from "../../src/domain/freshness.js";
@@ -65,6 +67,10 @@ export function getHealth(): HealthReport {
 
 export function getCalibration(): CalibrationBucket[] {
   return confidenceCalibration(db());
+}
+
+export function getActivity(weeks = 8): ActivityWeek[] {
+  return activityTimeline(db(), weeks);
 }
 
 /** Count of published cards whose verification is older than the threshold. */
@@ -395,4 +401,14 @@ export function listTeamCards(teamId: string, viewerId?: string): ContextCard[] 
     .filter((c): c is ContextCard => c != null && canViewCard(c, viewerId));
 }
 
-export type { HubStats, ContextCard, CardBrief, UserSummary, User, Team, TeamStats, CalibrationBucket };
+export type {
+  HubStats,
+  ContextCard,
+  CardBrief,
+  UserSummary,
+  User,
+  Team,
+  TeamStats,
+  CalibrationBucket,
+  ActivityWeek,
+};
