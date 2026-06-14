@@ -26,6 +26,11 @@ import {
   type RelationType,
 } from "../../src/domain/relations.js";
 import { SavedSearchRepository, type SavedSearch } from "../../src/domain/saved-searches.js";
+import {
+  NotificationsRepository,
+  type Notification,
+  type NotificationType,
+} from "../../src/domain/notifications.js";
 import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { needsReverification, daysSinceVerified, DEFAULT_REVERIFY_DAYS } from "../../src/domain/freshness.js";
 import { healthCheck, type HealthStatus } from "../../src/domain/health.js";
@@ -317,11 +322,18 @@ export async function updateCardForUser(
 export async function recordFeedbackForCard(
   cardId: string,
   outcome: "success" | "partial" | "failed",
+  actorUserId?: string,
 ): Promise<ContextCard> {
   const repo = new Repository(db());
   const card = repo.getCard(cardId);
   if (!card || !PUBLIC_STATUSES.has(card.status)) throw new Error("card_not_found");
   const { card: updated } = await repo.recordUsage(cardId, { agent: "other", outcome });
+
+  // Notify the author when someone else reports an outcome on their card.
+  const authorId = new UserRepository(db()).getCardAuthorId(cardId);
+  if (authorId && authorId !== actorUserId) {
+    notify(authorId, "feedback", `Your card “${card.title}” got “${outcome}” feedback.`, cardId);
+  }
   return updated;
 }
 
@@ -397,6 +409,24 @@ export function removeTeamMember(
   return { ok: true };
 }
 
+// --- Notifications ---
+
+function notify(userId: string, type: NotificationType, message: string, cardId?: string): void {
+  new NotificationsRepository(db()).create({ userId, type, message, cardId });
+}
+
+export function getNotifications(userId: string): Notification[] {
+  return new NotificationsRepository(db()).listForUser(userId);
+}
+
+export function getUnreadNotificationCount(userId: string): number {
+  return new NotificationsRepository(db()).unreadCount(userId);
+}
+
+export function markNotificationsRead(userId: string): void {
+  new NotificationsRepository(db()).markAllRead(userId);
+}
+
 // --- Saved searches ---
 
 export function saveSearchForUser(
@@ -448,6 +478,15 @@ export function addCardRelationForUser(
   const target = new Repository(db()).getCard(toCardId.trim());
   if (!target || !canViewCard(target, userId)) return { ok: false, error: "no_such_card" };
   new RelationsRepository(db()).add(fromCardId, target.id, type as RelationType);
+
+  // Notify the target card's author when their card is superseded/duplicated.
+  if (type === "supersedes" || type === "duplicate") {
+    const targetAuthor = new UserRepository(db()).getCardAuthorId(target.id);
+    if (targetAuthor && targetAuthor !== userId) {
+      const verb = type === "supersedes" ? "superseded" : "marked as a duplicate";
+      notify(targetAuthor, "relation", `Your card “${target.title}” was ${verb}.`, target.id);
+    }
+  }
   return { ok: true };
 }
 
@@ -484,4 +523,5 @@ export type {
   ActivityWeek,
   RelationType,
   SavedSearch,
+  Notification,
 };
