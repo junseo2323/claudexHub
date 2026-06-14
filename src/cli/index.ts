@@ -6,6 +6,7 @@ import { Repository } from "../domain/repository.js";
 import { SearchService } from "../domain/search.js";
 import { cardInputSchema, evidenceSourceSchema } from "../domain/card-schema.js";
 import { hubStats } from "../domain/stats.js";
+import { evaluateSelfRetrieval } from "../domain/eval.js";
 import { config } from "../config.js";
 import { extractDraft } from "../domain/extraction.js";
 import { redact, redactCard, mergeReports, reportFromFindings } from "../domain/redaction.js";
@@ -254,6 +255,28 @@ program
         );
       }
     }
+  });
+
+program
+  .command("eval")
+  .description("Search-quality self-retrieval eval (each card title should find its card)")
+  .option("--k <n>", "Top-k cutoff", "5")
+  .option("--json", "Output raw JSON")
+  .action(async (opts: { k: string; json?: boolean }) => {
+    const db = getDb();
+    migrate(db);
+    const search = new SearchService(db);
+    const report = await evaluateSelfRetrieval(search, db, Number(opts.k));
+    if (opts.json) {
+      console.log(JSON.stringify(report, null, 2));
+      return;
+    }
+    const pct = (n: number) => `${Math.round(n * 100)}%`;
+    console.log(`=== Search eval (self-retrieval, k=${report.k}, ${report.cases} cards) ===`);
+    console.log(`hit@1:     ${pct(report.hitAt1Rate)}`);
+    console.log(`hit@${report.k}:     ${pct(report.hitAtKRate)}`);
+    console.log(`MRR:       ${report.mrr.toFixed(3)}`);
+    console.log(`precision@${report.k}: ${pct(report.meanPrecisionAtK)}`);
   });
 
 program
