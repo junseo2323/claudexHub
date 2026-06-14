@@ -14,6 +14,8 @@ import {
   removeTeamMember,
   getTeamBySlug,
   publishDraftToTeam,
+  addCardRelationForUser,
+  removeCardRelationForUser,
 } from "./hub";
 
 function lines(value: FormDataEntryValue | null): string[] {
@@ -145,6 +147,24 @@ export async function removeTeamMemberAction(formData: FormData) {
   if (!team) redirect("/teams");
   const res = removeTeamMember(team.id, user.id, memberId);
   redirect(`/teams/${slug}${res.ok ? "" : `?error=${res.error}`}`);
+}
+
+export async function addRelationAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const fromCardId = str(formData, "cardId");
+  const toCardId = str(formData, "toCardId");
+  const type = str(formData, "type");
+  const res = addCardRelationForUser(fromCardId, user.id, toCardId, type);
+  redirect(`/cards/${fromCardId}${res.ok ? "" : `?relerror=${res.error}`}`);
+}
+
+export async function removeRelationAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const fromCardId = str(formData, "cardId");
+  removeCardRelationForUser(fromCardId, user.id, str(formData, "toCardId"), str(formData, "type"));
+  redirect(`/cards/${fromCardId}`);
 }
 
 export async function deleteCardAction(formData: FormData) {

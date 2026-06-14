@@ -480,3 +480,13 @@ th {
 .link-danger:hover {
   text-decoration: underline;
 }
+.relation-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.relation-row:last-child {
+  border-bottom: none;
+}

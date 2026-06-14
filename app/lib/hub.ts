@@ -20,6 +20,11 @@ import {
   type CalibrationBucket,
   type ActivityWeek,
 } from "../../src/domain/stats.js";
+import {
+  RelationsRepository,
+  RELATION_TYPES,
+  type RelationType,
+} from "../../src/domain/relations.js";
 import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { needsReverification, daysSinceVerified, DEFAULT_REVERIFY_DAYS } from "../../src/domain/freshness.js";
 import { healthCheck, type HealthStatus } from "../../src/domain/health.js";
@@ -391,6 +396,54 @@ export function removeTeamMember(
   return { ok: true };
 }
 
+// --- Card relations (knowledge graph) ---
+
+export interface RelatedCardRef {
+  card: ContextCard;
+  type: RelationType;
+  direction: "outgoing" | "incoming";
+}
+
+/** Resolve a card's relations to the viewable cards on either side. */
+export function getCardRelations(cardId: string, viewerId?: string): RelatedCardRef[] {
+  const rel = new RelationsRepository(db());
+  const repo = new Repository(db());
+  const refs: RelatedCardRef[] = [];
+  const add = (otherId: string, type: RelationType, direction: "outgoing" | "incoming") => {
+    const c = repo.getCard(otherId);
+    if (c && canViewCard(c, viewerId)) refs.push({ card: c, type, direction });
+  };
+  for (const r of rel.outgoing(cardId)) add(r.toCardId, r.type, "outgoing");
+  for (const r of rel.incoming(cardId)) add(r.fromCardId, r.type, "incoming");
+  return refs;
+}
+
+/** Add a relation from a card the user authored to another card they can see. */
+export function addCardRelationForUser(
+  fromCardId: string,
+  userId: string,
+  toCardId: string,
+  type: string,
+): { ok: true } | { ok: false; error: "forbidden" | "no_such_card" | "bad_type" } {
+  if (!getEditableCardForUser(fromCardId, userId)) return { ok: false, error: "forbidden" };
+  if (!RELATION_TYPES.includes(type as RelationType)) return { ok: false, error: "bad_type" };
+  const target = new Repository(db()).getCard(toCardId.trim());
+  if (!target || !canViewCard(target, userId)) return { ok: false, error: "no_such_card" };
+  new RelationsRepository(db()).add(fromCardId, target.id, type as RelationType);
+  return { ok: true };
+}
+
+export function removeCardRelationForUser(
+  fromCardId: string,
+  userId: string,
+  toCardId: string,
+  type: string,
+): { ok: boolean } {
+  if (!getEditableCardForUser(fromCardId, userId)) return { ok: false };
+  new RelationsRepository(db()).remove(fromCardId, toCardId, type as RelationType);
+  return { ok: true };
+}
+
 /** Cards shared with a team that the viewer is allowed to see, newest first. */
 export function listTeamCards(teamId: string, viewerId?: string): ContextCard[] {
   const teams = new TeamRepository(db());
@@ -411,4 +464,5 @@ export type {
   TeamStats,
   CalibrationBucket,
   ActivityWeek,
+  RelationType,
 };

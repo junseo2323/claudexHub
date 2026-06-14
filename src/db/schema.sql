@@ -125,3 +125,14 @@ CREATE VIRTUAL TABLE IF NOT EXISTS context_cards_vec USING vec0(
   card_id TEXT PRIMARY KEY,
   embedding float[__EMBED_DIM__] distance_metric=cosine
 );
+
+-- Card relationships (knowledge graph): supersedes | duplicate | related.
+CREATE TABLE IF NOT EXISTS card_relations (
+  from_card_id TEXT NOT NULL REFERENCES context_cards(id) ON DELETE CASCADE,
+  to_card_id TEXT NOT NULL REFERENCES context_cards(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,        -- supersedes | duplicate | related
+  created_at TEXT NOT NULL,
+  PRIMARY KEY (from_card_id, to_card_id, type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_relations_to ON card_relations(to_card_id);
