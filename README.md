@@ -69,6 +69,7 @@ npm run cli -- publish <card_id> --visibility public
 npm run cli -- feedback <card_id> --outcome success --before 12000 --after 2000
 npm run cli -- stale <card_id> --reason "Next.js 16 changed defaults" --versions "Next.js 16"
 npm run cli -- stats                 # trust + reuse statistics (add --json for raw)
+npm run cli -- eval --k 5            # search-quality self-retrieval eval (hit@k, MRR)
 npm run cli -- reindex
 ```
 
