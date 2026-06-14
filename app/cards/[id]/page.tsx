@@ -1,12 +1,31 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getViewableCard, getAuthorId, getUser, relatedCards, cardFreshness } from "../../lib/hub";
+import {
+  getViewableCard,
+  getAuthorId,
+  getUser,
+  relatedCards,
+  cardFreshness,
+  getCardRelations,
+  type RelationType,
+} from "../../lib/hub";
 import { getCurrentUser } from "../../lib/auth";
-import { markStaleAction, recordFeedbackAction } from "../../lib/actions";
+import {
+  markStaleAction,
+  recordFeedbackAction,
+  addRelationAction,
+  removeRelationAction,
+} from "../../lib/actions";
 import { Avatar, EnvChips, RiskBadge, riskFromConfidence, BriefRow } from "../../components";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+function relationLabel(type: RelationType, direction: "outgoing" | "incoming"): string {
+  if (type === "supersedes") return direction === "outgoing" ? "Supersedes" : "Superseded by";
+  if (type === "duplicate") return direction === "outgoing" ? "Duplicate of" : "Has duplicate";
+  return "Related to";
+}
 
 function List({ title, items }: { title: string; items: string[] }) {
   if (!items || items.length === 0) return null;
@@ -27,10 +46,10 @@ export default async function CardDetail({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ feedback?: string }>;
+  searchParams: Promise<{ feedback?: string; relerror?: string }>;
 }) {
   const { id } = await params;
-  const { feedback } = await searchParams;
+  const { feedback, relerror } = await searchParams;
   const me = await getCurrentUser();
   const card = getViewableCard(id, me?.id);
   if (!card) notFound();
@@ -40,6 +59,7 @@ export default async function CardDetail({
   const isOwner = !!me && me.id === authorId;
   const stale = card.status === "stale" || card.status === "deprecated";
   const fresh = cardFreshness(card);
+  const relations = getCardRelations(card.id, me?.id);
   const related = await relatedCards(card.id, me?.id, 3);
 
   return (
@@ -147,9 +167,52 @@ export default async function CardDetail({
         </p>
       </div>
 
+      {(relations.length > 0 || isOwner) && (
+        <div className="section">
+          <h3>Linked cards</h3>
+          {relerror === "no_such_card" && <div className="banner">Target card not found or not visible to you.</div>}
+          {relations.length === 0 ? (
+            <p className="subtle" style={{ marginTop: 0 }}>No linked cards yet.</p>
+          ) : (
+            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+              {relations.map((r) => (
+                <li key={`${r.direction}-${r.type}-${r.card.id}`} className="relation-row">
+                  <span className="chip">{relationLabel(r.type, r.direction)}</span>
+                  <Link href={`/cards/${r.card.id}`}>{r.card.title}</Link>
+                  {isOwner && r.direction === "outgoing" && (
+                    <form action={removeRelationAction} style={{ marginLeft: "auto" }}>
+                      <input type="hidden" name="cardId" value={card.id} />
+                      <input type="hidden" name="toCardId" value={r.card.id} />
+                      <input type="hidden" name="type" value={r.type} />
+                      <button type="submit" className="link-danger">
+                        unlink
+                      </button>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {isOwner && (
+            <form action={addRelationAction} className="stale-form" style={{ marginTop: 12 }}>
+              <input type="hidden" name="cardId" value={card.id} />
+              <select name="type" defaultValue="supersedes">
+                <option value="supersedes">Supersedes</option>
+                <option value="duplicate">Duplicate of</option>
+                <option value="related">Related to</option>
+              </select>
+              <input type="text" name="toCardId" placeholder="Target card id (card_…)" />
+              <button type="submit" className="btn secondary">
+                Link
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+
       {related.length > 0 && (
         <div className="section">
-          <h3>Related cards</h3>
+          <h3>Related cards (semantic)</h3>
           <div className="card-list">
             {related.map((b) => (
               <BriefRow key={b.id} brief={b} />

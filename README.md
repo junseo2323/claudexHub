@@ -102,7 +102,7 @@ Then in Claude Code: confirm the tools appear, and try
 A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 
 - **Dashboard** (`/`) — hub stats, top stacks, agent activity, reputation score.
-- **Cards** (`/cards`, `/cards/[id]`) — browse cards (filter by stack/status) and view full detail (with author). Signed-in users can record reuse feedback (worked / partly / didn't), feeding reuse counts, confidence, and the author's reputation.
+- **Cards** (`/cards`, `/cards/[id]`) — browse cards (filter by stack/status) and view full detail (with author). Signed-in users can record reuse feedback (worked / partly / didn't), feeding reuse counts, confidence, and the author's reputation. Authors can **link cards** (supersedes / duplicate / related) to build a knowledge graph (Phase 7).
 - **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool, with stack and min-confidence filters.
 - **Leaderboard** (`/leaderboard`) — contributors ranked by reputation.
 - **Insights** (`/insights`) — confidence calibration (each band's observed reuse
