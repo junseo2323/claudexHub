@@ -84,4 +84,23 @@ describe("teams", () => {
     expect(stats.totals.successfulReuse).toBe(1);
     expect(stats.totals.reputationScore).toBeGreaterThan(0);
   });
+
+  it("lists card ids shared with a team, newest first", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const users = new UserRepository(db);
+    const teams = new TeamRepository(db);
+    const alice = users.getOrCreateLocal("alice");
+    const team = teams.createTeam("Platform", alice.id);
+
+    const c1 = await publish(repo, "Shared one");
+    const c2 = await publish(repo, "Shared two");
+    teams.setCardTeam(c1.id, team.id);
+    teams.setCardTeam(c2.id, team.id);
+
+    const ids = teams.listCardIdsForTeam(team.id);
+    expect(ids).toContain(c1.id);
+    expect(ids).toContain(c2.id);
+    expect(ids).toHaveLength(2);
+  });
 });

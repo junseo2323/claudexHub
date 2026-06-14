@@ -148,4 +148,12 @@ export class TeamRepository {
       | undefined;
     return row?.team_id;
   }
+
+  /** Card ids shared with a team, newest first. */
+  listCardIdsForTeam(teamId: string): string[] {
+    const rows = this.db
+      .prepare("SELECT card_id FROM card_teams WHERE team_id = ? ORDER BY created_at DESC")
+      .all(teamId) as { card_id: string }[];
+    return rows.map((r) => r.card_id);
+  }
 }

@@ -1,8 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
-import { getTeamBySlug, getTeamStatsById, isTeamMember, isTeamOwner } from "../../lib/hub";
-import { addTeamMemberAction } from "../../lib/actions";
-import { Avatar } from "../../components";
+import {
+  getTeamBySlug,
+  getTeamStatsById,
+  isTeamMember,
+  isTeamOwner,
+  listTeamCards,
+} from "../../lib/hub";
+import { addTeamMemberAction, removeTeamMemberAction } from "../../lib/actions";
+import { Avatar, CardRow } from "../../components";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,12 +31,14 @@ export default async function TeamPage({
 
   const stats = getTeamStatsById(team.id)!;
   const owner = isTeamOwner(team.id, me.id);
+  const teamCards = listTeamCards(team.id, me.id);
   const t = stats.totals;
 
   return (
     <>
       <h1>{team.name}</h1>
       <p className="subtle">@{team.slug} · {stats.members.length} member{stats.members.length === 1 ? "" : "s"}</p>
+      {error === "cannot_remove_owner" && <div className="banner">The team owner can't be removed.</div>}
 
       <div className="stat-grid">
         <Tile value={t.reputationScore} label="Team reputation" />
@@ -50,6 +58,7 @@ export default async function TeamPage({
               <th>Reputation</th>
               <th>Published</th>
               <th>Reuse ✓</th>
+              {owner && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -66,11 +75,37 @@ export default async function TeamPage({
                 </td>
                 <td>{m.cardsPublished}</td>
                 <td>{m.successfulReuse}</td>
+                {owner && (
+                  <td style={{ textAlign: "right" }}>
+                    {m.role !== "owner" && (
+                      <form action={removeTeamMemberAction}>
+                        <input type="hidden" name="slug" value={team.slug} />
+                        <input type="hidden" name="memberId" value={m.user.id} />
+                        <button type="submit" className="link-danger" title="Remove member">
+                          Remove
+                        </button>
+                      </form>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <h2>Team cards</h2>
+      {teamCards.length === 0 ? (
+        <div className="empty">
+          No team-only cards yet. Publish a draft “to team” to share it here.
+        </div>
+      ) : (
+        <div className="card-list">
+          {teamCards.map((c) => (
+            <CardRow key={c.id} card={c} />
+          ))}
+        </div>
+      )}
 
       {owner && (
         <div className="section panel">
