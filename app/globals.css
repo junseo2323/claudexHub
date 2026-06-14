@@ -200,6 +200,9 @@ h2 {
   gap: 10px;
   font-size: 13px;
 }
+.bar-row.wide {
+  grid-template-columns: 96px 1fr 84px;
+}
 .bar-track {
   background: var(--panel-2);
   border-radius: 6px;

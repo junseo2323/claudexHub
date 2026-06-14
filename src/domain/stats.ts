@@ -405,3 +405,46 @@ export function confidenceCalibration(db: DB): CalibrationBucket[] {
     };
   });
 }
+
+export interface ActivityWeek {
+  /** ISO date (YYYY-MM-DD) of the week's start. */
+  weekStart: string;
+  cardsCreated: number;
+  reuseEvents: number;
+}
+
+/**
+ * Activity over the last `weeks` weeks: cards created and reuse events recorded,
+ * bucketed by week (oldest first). Phase 6 time-series analytics.
+ */
+export function activityTimeline(db: DB, weeks = 8, now: Date = new Date()): ActivityWeek[] {
+  const WEEK = 7 * 24 * 60 * 60 * 1000;
+  const end = now.getTime();
+  const start = end - weeks * WEEK;
+
+  const buckets: ActivityWeek[] = [];
+  for (let k = 0; k < weeks; k++) {
+    buckets.push({
+      weekStart: new Date(start + k * WEEK).toISOString().slice(0, 10),
+      cardsCreated: 0,
+      reuseEvents: 0,
+    });
+  }
+  const bucketOf = (iso: string): number => {
+    const t = new Date(iso).getTime();
+    if (Number.isNaN(t) || t < start || t >= end) return -1;
+    return Math.min(weeks - 1, Math.floor((t - start) / WEEK));
+  };
+
+  const cardRows = db.prepare("SELECT created_at FROM context_cards").all() as { created_at: string }[];
+  for (const r of cardRows) {
+    const i = bucketOf(r.created_at);
+    if (i >= 0) buckets[i].cardsCreated += 1;
+  }
+  const usageRows = db.prepare("SELECT created_at FROM agent_usage").all() as { created_at: string }[];
+  for (const r of usageRows) {
+    const i = bucketOf(r.created_at);
+    if (i >= 0) buckets[i].reuseEvents += 1;
+  }
+  return buckets;
+}

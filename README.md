@@ -105,8 +105,9 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 - **Cards** (`/cards`, `/cards/[id]`) — browse cards (filter by stack/status) and view full detail (with author). Signed-in users can record reuse feedback (worked / partly / didn't), feeding reuse counts, confidence, and the author's reputation.
 - **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool, with stack and min-confidence filters.
 - **Leaderboard** (`/leaderboard`) — contributors ranked by reputation.
-- **Insights** (`/insights`) — confidence calibration: each band's observed reuse
-  success rate vs. its score, plus how many cards may need re-verification (Phase 4 telemetry).
+- **Insights** (`/insights`) — confidence calibration (each band's observed reuse
+  success rate vs. its score), cards needing re-verification, and an 8-week
+  activity timeline of cards created + reuse events (Phase 4/6 telemetry).
 - **Freshness** — a card verified long ago surfaces a "re-verify" nudge on its
   detail page (`src/domain/freshness.ts`).
 - **Profiles** (`/profile`, `/u/[login]`) — a user's contributions and stats.
