@@ -1,6 +1,6 @@
 # TODO / Deferred
 
-Tracked follow-ups. Phases 1–5 are merged to `main` (CI green).
+Tracked follow-ups. Phases 1–6 are merged to `main` (CI green).
 
 ## Phase 4 polish (optional, low priority)
 
@@ -36,7 +36,19 @@ Remaining:
 - [ ] **Multi-instance** — move sessions + rate-limit state to a shared store
       (e.g. Redis) so more than one replica can run.
 
+## Phase 6 — collaboration & analytics
+
+Done: team card lists + owner member removal (access revoked on removal),
+8-week activity timeline on `/insights`.
+
+Remaining:
+
+- [ ] **Org-level roles** — beyond owner/member (e.g. admin who can manage
+      members but not delete the team).
+- [ ] **Per-member / per-team trends** — extend `activityTimeline` to scope by
+      team or author.
+
 ## Future phases
 
-- [ ] **Phase 6** — richer collaboration (team card lists, member removal UI,
-      org-level roles) and analytics over time.
+- [ ] **Phase 7** — notifications (stale/feedback events), saved searches, and
+      richer card relationships (supersedes / duplicates).
