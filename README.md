@@ -103,7 +103,7 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 
 - **Dashboard** (`/`) — hub stats, top stacks, agent activity, reputation score.
 - **Cards** (`/cards`, `/cards/[id]`) — browse cards (filter by stack/status) and view full detail (with author). Signed-in users can record reuse feedback (worked / partly / didn't), feeding reuse counts, confidence, and the author's reputation. Authors can **link cards** (supersedes / duplicate / related) to build a knowledge graph (Phase 7).
-- **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool, with stack and min-confidence filters.
+- **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool, with stack and min-confidence filters. Signed-in users can **save searches** and re-run them later (Phase 7).
 - **Leaderboard** (`/leaderboard`) — contributors ranked by reputation.
 - **Insights** (`/insights`) — confidence calibration (each band's observed reuse
   success rate vs. its score), cards needing re-verification, and an 8-week
