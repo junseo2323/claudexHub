@@ -11,6 +11,7 @@ import {
   deleteCardForUser,
   createTeamForUser,
   addTeamMemberByLogin,
+  removeTeamMember,
   getTeamBySlug,
   publishDraftToTeam,
 } from "./hub";
@@ -132,6 +133,17 @@ export async function addTeamMemberAction(formData: FormData) {
   const team = getTeamBySlug(slug);
   if (!team) redirect("/teams");
   const res = addTeamMemberByLogin(team.id, user.id, login);
+  redirect(`/teams/${slug}${res.ok ? "" : `?error=${res.error}`}`);
+}
+
+export async function removeTeamMemberAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const slug = str(formData, "slug");
+  const memberId = str(formData, "memberId");
+  const team = getTeamBySlug(slug);
+  if (!team) redirect("/teams");
+  const res = removeTeamMember(team.id, user.id, memberId);
   redirect(`/teams/${slug}${res.ok ? "" : `?error=${res.error}`}`);
 }
 

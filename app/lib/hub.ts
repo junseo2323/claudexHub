@@ -370,4 +370,29 @@ export function addTeamMemberByLogin(
   return { ok: true };
 }
 
+/** Owner-only: remove a member. The owner cannot be removed. */
+export function removeTeamMember(
+  teamId: string,
+  byUserId: string,
+  memberUserId: string,
+): { ok: true } | { ok: false; error: "forbidden" | "cannot_remove_owner" } {
+  const teams = new TeamRepository(db());
+  if (teams.roleOf(teamId, byUserId) !== "owner") return { ok: false, error: "forbidden" };
+  if (teams.roleOf(teamId, memberUserId) === "owner") {
+    return { ok: false, error: "cannot_remove_owner" };
+  }
+  teams.removeMember(teamId, memberUserId);
+  return { ok: true };
+}
+
+/** Cards shared with a team that the viewer is allowed to see, newest first. */
+export function listTeamCards(teamId: string, viewerId?: string): ContextCard[] {
+  const teams = new TeamRepository(db());
+  const repo = new Repository(db());
+  return teams
+    .listCardIdsForTeam(teamId)
+    .map((id) => repo.getCard(id))
+    .filter((c): c is ContextCard => c != null && canViewCard(c, viewerId));
+}
+
 export type { HubStats, ContextCard, CardBrief, UserSummary, User, Team, TeamStats, CalibrationBucket };

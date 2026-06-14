@@ -111,9 +111,10 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
   detail page (`src/domain/freshness.ts`).
 - **Profiles** (`/profile`, `/u/[login]`) — a user's contributions and stats.
 - **Teams** (`/teams`, `/teams/[slug]`) — group contributors; owner-managed
-  membership and a combined team reputation/stats view (Phase 3). Drafts can be
-  published with **team visibility** — such cards are visible only to team
-  members (enforced across detail, browse, search, and profiles).
+  membership (add/remove), a combined team reputation/stats view, and the team's
+  shared card list (Phase 3/6). Drafts can be published with **team visibility** —
+  such cards are visible only to team members (enforced across detail, browse,
+  search, and profiles), and access is revoked when a member is removed.
 - **Authoring** (`/new`, `/drafts`, `/drafts/[id]`) — a signed-in user drafts a card
   (secrets auto-redacted, fields auto-extracted), reviews it privately, and
   publishes it through a secret-scan approval gate.
