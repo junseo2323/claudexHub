@@ -136,3 +136,16 @@ CREATE TABLE IF NOT EXISTS card_relations (
 );
 
 CREATE INDEX IF NOT EXISTS idx_relations_to ON card_relations(to_card_id);
+
+-- Saved searches (a user's bookmarked queries + filters).
+CREATE TABLE IF NOT EXISTS saved_searches (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  query TEXT NOT NULL,
+  stack TEXT,
+  min_confidence INTEGER,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_saved_searches_user ON saved_searches(user_id);

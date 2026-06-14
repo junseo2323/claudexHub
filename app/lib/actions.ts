@@ -16,6 +16,8 @@ import {
   publishDraftToTeam,
   addCardRelationForUser,
   removeCardRelationForUser,
+  saveSearchForUser,
+  deleteSavedSearch,
 } from "./hub";
 
 function lines(value: FormDataEntryValue | null): string[] {
@@ -147,6 +149,36 @@ export async function removeTeamMemberAction(formData: FormData) {
   if (!team) redirect("/teams");
   const res = removeTeamMember(team.id, user.id, memberId);
   redirect(`/teams/${slug}${res.ok ? "" : `?error=${res.error}`}`);
+}
+
+function searchHref(q: string, stack?: string, min?: string): string {
+  const params = new URLSearchParams({ q });
+  if (stack) params.set("stack", stack);
+  if (min) params.set("min", min);
+  return `/search?${params.toString()}`;
+}
+
+export async function saveSearchAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const query = str(formData, "q");
+  const stack = str(formData, "stack");
+  const min = str(formData, "min");
+  if (!query) redirect("/search");
+  saveSearchForUser(user.id, {
+    label: str(formData, "label") || undefined,
+    query,
+    stack: stack || undefined,
+    minConfidence: min ? Number(min) : undefined,
+  });
+  redirect(searchHref(query, stack, min));
+}
+
+export async function deleteSavedSearchAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  deleteSavedSearch(user.id, str(formData, "id"));
+  redirect("/search");
 }
 
 export async function addRelationAction(formData: FormData) {

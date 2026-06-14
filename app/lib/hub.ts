@@ -25,6 +25,7 @@ import {
   RELATION_TYPES,
   type RelationType,
 } from "../../src/domain/relations.js";
+import { SavedSearchRepository, type SavedSearch } from "../../src/domain/saved-searches.js";
 import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { needsReverification, daysSinceVerified, DEFAULT_REVERIFY_DAYS } from "../../src/domain/freshness.js";
 import { healthCheck, type HealthStatus } from "../../src/domain/health.js";
@@ -396,6 +397,23 @@ export function removeTeamMember(
   return { ok: true };
 }
 
+// --- Saved searches ---
+
+export function saveSearchForUser(
+  userId: string,
+  input: { label?: string; query: string; stack?: string; minConfidence?: number },
+): SavedSearch {
+  return new SavedSearchRepository(db()).create(userId, input);
+}
+
+export function listSavedSearches(userId: string): SavedSearch[] {
+  return new SavedSearchRepository(db()).listForUser(userId);
+}
+
+export function deleteSavedSearch(userId: string, id: string): void {
+  new SavedSearchRepository(db()).delete(id, userId);
+}
+
 // --- Card relations (knowledge graph) ---
 
 export interface RelatedCardRef {
@@ -465,4 +483,5 @@ export type {
   CalibrationBucket,
   ActivityWeek,
   RelationType,
+  SavedSearch,
 };

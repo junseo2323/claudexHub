@@ -480,6 +480,17 @@ th {
 .link-danger:hover {
   text-decoration: underline;
 }
+.link-accent {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+}
+.link-accent:hover {
+  text-decoration: underline;
+}
 .relation-row {
   display: flex;
   align-items: center;
