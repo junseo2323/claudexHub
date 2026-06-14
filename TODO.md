@@ -1,6 +1,6 @@
 # TODO / Deferred
 
-Tracked follow-ups. Phases 1–6 are merged to `main` (CI green).
+Tracked follow-ups. Phases 1–7 are merged to `main` (CI green).
 
 ## Phase 4 polish (optional, low priority)
 
@@ -48,7 +48,17 @@ Remaining:
 - [ ] **Per-member / per-team trends** — extend `activityTimeline` to scope by
       team or author.
 
+## Phase 7 — graph, search bookmarks & notifications
+
+Done: card relationships (supersedes / duplicate / related), saved searches,
+in-app notifications (feedback + supersede/duplicate events) with an unread badge.
+
+Remaining:
+
+- [ ] **Notification delivery** — email/webhook out, and a "mark single read".
+- [ ] **Relationship graph view** — visualize supersedes chains across cards.
+
 ## Future phases
 
-- [ ] **Phase 7** — notifications (stale/feedback events), saved searches, and
-      richer card relationships (supersedes / duplicates).
+- [ ] **Phase 8** — search quality eval harness (labelled query→card set, measure
+      ranking) and API tokens for programmatic (non-MCP) access.
