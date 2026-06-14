@@ -1,6 +1,6 @@
 # TODO / Deferred
 
-Tracked follow-ups. Phases 1–7 are merged to `main` (CI green).
+Tracked follow-ups. Phases 1–8 are merged to `main` (CI green).
 
 ## Phase 4 polish (optional, low priority)
 
@@ -58,7 +58,19 @@ Remaining:
 - [ ] **Notification delivery** — email/webhook out, and a "mark single read".
 - [ ] **Relationship graph view** — visualize supersedes chains across cards.
 
+## Phase 8 — search eval & programmatic API
+
+Done: search-quality eval harness (`eval` CLI: hit@1/hit@k/MRR/precision@k) and
+token-authenticated `/api/v1/search` with `/settings/tokens` management.
+
+Remaining:
+
+- [ ] **Curated eval set** — hand-labelled query→card cases beyond self-retrieval,
+      to catch ranking regressions on paraphrased / multi-relevant queries.
+- [ ] **API surface** — add `/api/v1/cards/:id` (read) and write endpoints
+      (draft/publish) behind tokens; per-token scopes.
+
 ## Future phases
 
-- [ ] **Phase 8** — search quality eval harness (labelled query→card set, measure
-      ranking) and API tokens for programmatic (non-MCP) access.
+- [ ] **Phase 9** — ranking-regression CI gate using the eval harness; an
+      OpenAPI spec + docs for the HTTP API.
