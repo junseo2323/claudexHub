@@ -1,8 +1,12 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "./auth";
+import { NEW_TOKEN_COOKIE } from "./constants";
 import {
+  createApiToken,
+  revokeApiToken,
   createDraftForUser,
   publishDraftForUser,
   updateCardForUser,
@@ -179,6 +183,30 @@ export async function deleteSavedSearchAction(formData: FormData) {
   if (!user) redirect("/login");
   deleteSavedSearch(user.id, str(formData, "id"));
   redirect("/search");
+}
+
+export async function createApiTokenAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const name = str(formData, "name") || "token";
+  const { plaintext } = createApiToken(user.id, name);
+  // Flash the plaintext once via a short-lived cookie (never stored server-side).
+  const store = await cookies();
+  store.set(NEW_TOKEN_COOKIE, plaintext, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/settings/tokens",
+    maxAge: 120,
+    secure: process.env.NODE_ENV === "production",
+  });
+  redirect("/settings/tokens");
+}
+
+export async function revokeApiTokenAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  revokeApiToken(user.id, str(formData, "id"));
+  redirect("/settings/tokens");
 }
 
 export async function addRelationAction(formData: FormData) {

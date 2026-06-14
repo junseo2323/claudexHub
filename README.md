@@ -196,6 +196,20 @@ every write (no triggers — embeddings are computed in app code):
 > placeholders pending richer reuse/verification telemetry (Phase 4 in the
 > product plan).
 
+## HTTP API
+
+Beyond MCP, the hub exposes a token-authenticated search endpoint. Create a
+token at `/settings/tokens`, then:
+
+```bash
+curl -H "Authorization: Bearer cxh_…" \
+  "http://localhost:3000/api/v1/search?q=kakao%20cookie&limit=5"
+```
+
+Results respect the token owner's visibility (public + their team cards). The
+endpoint is rate-limited per IP. Tokens are stored only as a SHA-256 hash and
+the plaintext is shown once at creation.
+
 ## Deployment
 
 See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for env vars, the GitHub OAuth callback,

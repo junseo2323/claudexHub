@@ -31,6 +31,7 @@ import {
   type Notification,
   type NotificationType,
 } from "../../src/domain/notifications.js";
+import { ApiTokenRepository, type ApiToken } from "../../src/domain/api-tokens.js";
 import { TeamRepository, type Team } from "../../src/domain/teams.js";
 import { needsReverification, daysSinceVerified, DEFAULT_REVERIFY_DAYS } from "../../src/domain/freshness.js";
 import { healthCheck, type HealthStatus } from "../../src/domain/health.js";
@@ -427,6 +428,25 @@ export function markNotificationsRead(userId: string): void {
   new NotificationsRepository(db()).markAllRead(userId);
 }
 
+// --- API tokens (programmatic access) ---
+
+export function createApiToken(userId: string, name: string): { token: ApiToken; plaintext: string } {
+  return new ApiTokenRepository(db()).create(userId, name);
+}
+
+export function listApiTokens(userId: string): ApiToken[] {
+  return new ApiTokenRepository(db()).listForUser(userId);
+}
+
+export function revokeApiToken(userId: string, id: string): void {
+  new ApiTokenRepository(db()).revoke(id, userId);
+}
+
+/** Resolve a Bearer token to its user id (for the public HTTP API). */
+export function verifyApiToken(plaintext: string): string | undefined {
+  return new ApiTokenRepository(db()).verify(plaintext);
+}
+
 // --- Saved searches ---
 
 export function saveSearchForUser(
@@ -524,4 +544,5 @@ export type {
   RelationType,
   SavedSearch,
   Notification,
+  ApiToken,
 };
