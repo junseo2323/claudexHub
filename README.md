@@ -208,7 +208,8 @@ curl -H "Authorization: Bearer cxh_…" \
 
 Results respect the token owner's visibility (public + their team cards). The
 endpoint is rate-limited per IP. Tokens are stored only as a SHA-256 hash and
-the plaintext is shown once at creation.
+the plaintext is shown once at creation. The OpenAPI 3.0 spec is served at
+`GET /api/v1/openapi`.
 
 ## Deployment
 
