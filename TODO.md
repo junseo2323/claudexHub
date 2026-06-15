@@ -1,6 +1,6 @@
 # TODO / Deferred
 
-Tracked follow-ups. Phases 1–8 are merged to `main` (CI green).
+Tracked follow-ups. Phases 1–9 are merged to `main` (CI green).
 
 ## Phase 4 polish (optional, low priority)
 
@@ -70,7 +70,18 @@ Remaining:
 - [ ] **API surface** — add `/api/v1/cards/:id` (read) and write endpoints
       (draft/publish) behind tokens; per-token scopes.
 
+## Phase 9 — quality gate & API spec
+
+Done: ranking-regression gate (fixed corpus + labelled queries, runs in CI via
+`npm test`) and an OpenAPI 3.0 doc at `GET /api/v1/openapi`.
+
+Remaining:
+
+- [ ] **Swagger UI** — render the OpenAPI doc as interactive HTML at `/api/docs`.
+- [ ] **Broaden the gate** — add paraphrase/multi-relevant cases and a per-case
+      report artifact when the gate fails.
+
 ## Future phases
 
-- [ ] **Phase 9** — ranking-regression CI gate using the eval harness; an
-      OpenAPI spec + docs for the HTTP API.
+- [ ] **Phase 10** — packaging & DX: publish the MCP server to npm, a one-command
+      quickstart, and example agent configs.
