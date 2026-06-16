@@ -1,6 +1,6 @@
 # TODO / Deferred
 
-Tracked follow-ups. Phases 1–9 are merged to `main` (CI green).
+Tracked follow-ups. Phases 1–10 are merged to `main` (CI green).
 
 ## Phase 4 polish (optional, low priority)
 
@@ -81,7 +81,19 @@ Remaining:
 - [ ] **Broaden the gate** — add paraphrase/multi-relevant cases and a per-case
       report artifact when the gate fails.
 
+## Phase 10 — packaging & DX
+
+Done: publish-ready package (MIT, metadata, `files`, `context-hub` +
+`context-hub-cli` bins, shebangs, `prepublishOnly`), one-command `init`
+(schema + seed), example Claude Code / Cursor MCP configs, and an npx quickstart.
+
+Remaining:
+
+- [ ] **Actually publish to npm** — needs registry credentials + a real package
+      name check (run `npm publish` from a release workflow).
+- [ ] **Release workflow** — tag → build → publish via GitHub Actions + changelog.
+
 ## Future phases
 
-- [ ] **Phase 10** — packaging & DX: publish the MCP server to npm, a one-command
-      quickstart, and example agent configs.
+- [ ] **Phase 11** — multi-instance hardening (shared session/rate-limit store)
+      and a hosted demo deployment.
