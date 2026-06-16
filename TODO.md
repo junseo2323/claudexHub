@@ -1,6 +1,6 @@
 # TODO / Deferred
 
-Tracked follow-ups. Phases 1–10 are merged to `main` (CI green).
+Tracked follow-ups. Phases 1–11 are merged to `main` (CI green).
 
 ## Phase 4 polish (optional, low priority)
 
@@ -93,7 +93,20 @@ Remaining:
       name check (run `npm publish` from a release workflow).
 - [ ] **Release workflow** — tag → build → publish via GitHub Actions + changelog.
 
+## Phase 11 — multi-instance hardening
+
+Done: shared SQLite-backed rate limiter (`SqliteRateLimiter`, `rate_limits`
+table) so per-IP limits hold across instances; documented that sessions are
+already stateless (HMAC) and multi-instance-ready; `docker-compose.yml` +
+hosted-demo / multi-instance docs.
+
+Remaining:
+
+- [ ] **Networked datastore** — for horizontal scale across hosts, move off a
+      single shared SQLite file (Postgres + pgvector, Redis-backed limiter).
+- [ ] **Live hosted demo** — actually deploy `docker compose` somewhere public.
+
 ## Future phases
 
-- [ ] **Phase 11** — multi-instance hardening (shared session/rate-limit store)
-      and a hosted demo deployment.
+- [ ] **Phase 12** — observability (structured request logs + request id, basic
+      metrics) and a status/admin page.
