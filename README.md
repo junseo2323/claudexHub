@@ -13,6 +13,9 @@ data. No OAuth or hosted endpoint yet — everything runs against a local SQLite
 
 ## What's here
 
+> 📄 Product spec: [`docs/PLANNING.md`](./docs/PLANNING.md) · spec-vs-build gap
+> analysis: [`docs/SPEC-GAP.md`](./docs/SPEC-GAP.md).
+
 - **MCP server** (`src/index.ts`) exposing 6 tools over stdio.
 - **Local SQLite** store with **hybrid search**: FTS5 keyword + sqlite-vec
   embedding similarity, fused into a confidence score.
