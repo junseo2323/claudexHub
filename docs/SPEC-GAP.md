@@ -79,8 +79,12 @@ Codeable here:
       token owner's team-private visibility — currently published/approved only.)*
 - [x] **`submit_for_approval` MCP tool** — spec tool parity (draft → submit → publish).
 - [x] **Search `version` filter** — P1 "stack/version 기반 검색 필터".
-- [ ] **CI Docker build job** — build the `Dockerfile` in CI.
-- [ ] **Release workflow** — tag → build → (publish) via GitHub Actions.
+- [x] **CI Docker build job** — `docker` job builds the `Dockerfile` on every CI run.
+- [x] **Release workflow** — `.github/workflows/release.yml`: tag `v*` → typecheck/test/build
+      → npm publish (gated on an `NPM_TOKEN` secret) → GitHub release.
+
+**All codeable deployment-ready gaps are now closed.** What's left is operational
+(do at deploy time, outside CI):
 
 Requires external credentials / infra (do at deploy time, not codeable in CI):
 
