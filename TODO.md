@@ -1,6 +1,6 @@
 # TODO / Deferred
 
-Tracked follow-ups. Phases 1–11 are merged to `main` (CI green).
+Tracked follow-ups. Phases 1–12 are merged to `main` (CI green).
 
 ## Phase 4 polish (optional, low priority)
 
@@ -106,7 +106,18 @@ Remaining:
       single shared SQLite file (Postgres + pgvector, Redis-backed limiter).
 - [ ] **Live hosted demo** — actually deploy `docker compose` somewhere public.
 
+## Phase 12 — observability & status
+
+Done: structured stderr JSON logs + `x-request-id` correlation (`src/logger.ts`)
+on the API/health routes; admin `/status` page (readiness, counts, config
+warnings, rate-limit windows) gated by `ADMIN_LOGINS`.
+
+Remaining:
+
+- [ ] **Broader instrumentation** — log the auth + server-action write paths too.
+- [ ] **Metrics export** — a `/metrics` (Prometheus) endpoint or counters over time.
+
 ## Future phases
 
-- [ ] **Phase 12** — observability (structured request logs + request id, basic
-      metrics) and a status/admin page.
+- [ ] **Phase 13** — audit log (who created / published / edited / marked-stale
+      which card) surfaced on cards and the status page.
