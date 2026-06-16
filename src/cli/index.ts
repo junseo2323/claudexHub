@@ -7,6 +7,7 @@ import { SearchService } from "../domain/search.js";
 import { cardInputSchema, evidenceSourceSchema } from "../domain/card-schema.js";
 import { hubStats } from "../domain/stats.js";
 import { evaluateSelfRetrieval } from "../domain/eval.js";
+import { seed } from "../seed/seed.js";
 import { config } from "../config.js";
 import { extractDraft } from "../domain/extraction.js";
 import { redact, redactCard, mergeReports, reportFromFindings } from "../domain/redaction.js";
@@ -20,6 +21,21 @@ function repo(): Repository {
 
 const program = new Command();
 program.name("context-hub").description("Dev CLI for the AI Agent Context Hub").version("0.1.0");
+
+program
+  .command("init")
+  .description("One-command setup: create the schema and load seed data")
+  .option("--no-seed", "Only create the schema (skip seed cards)")
+  .action(async (opts: { seed: boolean }) => {
+    const db = getDb();
+    migrate(db);
+    if (opts.seed === false) {
+      console.log(`Initialized schema at ${config.dbPath}`);
+      return;
+    }
+    const n = await seed();
+    console.log(`Initialized ${config.dbPath} — schema + ${n} seed cards (embeddings=${config.embeddingProvider})`);
+  });
 
 program
   .command("create")

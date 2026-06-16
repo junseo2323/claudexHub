@@ -1,11 +1,35 @@
 {
   "name": "ai-agent-context-hub",
   "version": "0.1.0",
-  "description": "Agent-first developer knowledge platform — local MCP prototype (Phase 1)",
+  "description": "Agent-first developer knowledge platform — an MCP server + web app for searchable, reusable Context Cards",
   "type": "module",
-  "bin": {
-    "context-hub": "dist/index.js"
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "claude",
+    "knowledge-base",
+    "developer-tools",
+    "semantic-search"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/junseo2323/claudexHub.git"
   },
+  "homepage": "https://github.com/junseo2323/claudexHub#readme",
+  "bugs": {
+    "url": "https://github.com/junseo2323/claudexHub/issues"
+  },
+  "bin": {
+    "context-hub": "dist/index.js",
+    "context-hub-cli": "dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -15,6 +39,7 @@
     "start": "node dist/index.js",
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/seed/seed.ts",
+    "init": "tsx src/cli/index.ts init",
     "cli": "tsx src/cli/index.ts",
     "reindex": "tsx src/cli/index.ts reindex",
     "test": "vitest run",
@@ -22,7 +47,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.lib.json",
     "web:dev": "next dev --webpack",
     "web:build": "next build --webpack",
-    "web:start": "next start"
+    "web:start": "next start",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
