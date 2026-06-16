@@ -239,4 +239,6 @@ config error (e.g. a default `AUTH_SECRET`) is present.
 - Redaction runs on draft creation **and** again as a publish-time gate.
 - The web app sets baseline security headers and validates production config
   (see `src/runtime-checks.ts`).
-- Auth routes are rate-limited per IP (`src/rate-limit.ts`).
+- Auth + API routes are rate-limited per IP via a shared SQLite-backed store
+  (`src/rate-limit-store.ts`), so limits hold across multiple app instances.
+  Sessions are stateless HMAC cookies, so any instance validates any session.

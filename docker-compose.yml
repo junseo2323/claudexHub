@@ -1,0 +1,18 @@
+# One-command hosted-style run of the web app.
+#   AUTH_SECRET=$(openssl rand -hex 32) docker compose up --build
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      HUB_DB_PATH: /data/hub.db
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET (e.g. openssl rand -hex 32)}
+      # GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET: set to enable GitHub OAuth.
+    volumes:
+      - hub-data:/data
+
+volumes:
+  hub-data:

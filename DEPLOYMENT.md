@@ -44,6 +44,27 @@ docker run -p 3000:3000 \
 The image runs `npm run migrate` on boot and serves on port 3000. The `/data`
 volume persists the SQLite store (and, for the local provider, the model cache).
 
+## Hosted demo (docker compose)
+
+```bash
+AUTH_SECRET=$(openssl rand -hex 32) docker compose up --build
+```
+
+Brings up the web app on port 3000 with a persistent `hub-data` volume. Set
+`GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` to enable GitHub OAuth (otherwise the
+demo login is used).
+
+## Multi-instance
+
+- **Sessions** are stateless — an HMAC-signed cookie verified with `AUTH_SECRET`,
+  so any instance validates any session (no shared session store needed). Use the
+  same `AUTH_SECRET` on every instance.
+- **Rate limits** live in the shared `rate_limits` table (`SqliteRateLimiter`), so
+  per-IP limits hold across instances that share the database.
+- Instances must therefore share the **same database**. A single shared SQLite
+  file (one volume) works for a small deployment; for true horizontal scale across
+  hosts, move to a networked DB and a Redis-backed limiter (see TODO).
+
 ## Without Docker
 
 ```bash
