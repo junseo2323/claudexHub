@@ -127,6 +127,8 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 - **Profiles** (`/profile`, `/u/[login]`) — a user's contributions and stats.
 - **Notifications** (`/notifications`) — in-app alerts when someone gives your
   card feedback or supersedes/duplicates it; an unread badge in the nav (Phase 7).
+- **Status** (`/status`) — admin-only operational overview: readiness, card
+  counts, config warnings, request pressure (Phase 12). Gated by `ADMIN_LOGINS`.
 - **Teams** (`/teams`, `/teams/[slug]`) — group contributors; owner-managed
   membership (add/remove), a combined team reputation/stats view, and the team's
   shared card list (Phase 3/6). Drafts can be published with **team visibility** —
@@ -223,6 +225,13 @@ Results respect the token owner's visibility (public + their team cards). The
 endpoint is rate-limited per IP. Tokens are stored only as a SHA-256 hash and
 the plaintext is shown once at creation. The OpenAPI 3.0 spec is served at
 `GET /api/v1/openapi`.
+
+## Observability
+
+API/health routes emit structured (JSON) logs to **stderr** and return an
+`x-request-id` header that correlates with the matching log line
+(`src/logger.ts`). The admin `/status` page surfaces readiness, data counts, and
+config warnings.
 
 ## Deployment
 

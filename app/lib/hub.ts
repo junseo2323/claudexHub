@@ -77,6 +77,11 @@ export function getHealth(): HealthReport {
   return { ...healthCheck(db()), warnings: checkRuntimeConfig() };
 }
 
+/** Number of active rate-limit windows (rough request-pressure signal). */
+export function getRateLimitCount(): number {
+  return (db().prepare("SELECT count(*) AS c FROM rate_limits").get() as { c: number }).c;
+}
+
 export function getCalibration(): CalibrationBucket[] {
   return confidenceCalibration(db());
 }
