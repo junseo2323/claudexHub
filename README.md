@@ -37,7 +37,20 @@ data. No OAuth or hosted endpoint yet — everything runs against a local SQLite
 | `record_feedback` | Record reuse outcome (success/partial/failed); updates reuse counts, accumulated tokens saved, and confidence. |
 | `mark_stale` | Mark a card stale when its fix is outdated/wrong; stale cards drop out of search. |
 
-## Setup
+## Quickstart
+
+Run the published MCP server with `npx` — one command sets up the local DB
+(schema + seed cards), then point your agent at it:
+
+```bash
+npx -y ai-agent-context-hub context-hub-cli init   # schema + 20 seed cards
+```
+
+Ready-to-copy agent configs are in [`examples/`](./examples) (Claude Code, Cursor).
+The package ships two bins: `context-hub` (the MCP server, the default) and
+`context-hub-cli` (the dev/admin CLI).
+
+## Setup (from source)
 
 ```bash
 npm install

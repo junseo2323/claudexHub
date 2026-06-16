@@ -1,0 +1,13 @@
+{
+  "//": "Cursor: add to ~/.cursor/mcp.json (global) or .cursor/mcp.json (project).",
+  "mcpServers": {
+    "context-hub": {
+      "command": "npx",
+      "args": ["-y", "ai-agent-context-hub"],
+      "env": {
+        "EMBEDDING_PROVIDER": "local",
+        "HUB_DB_PATH": "./data/hub.db"
+      }
+    }
+  }
+}
