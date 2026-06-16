@@ -230,6 +230,25 @@ endpoint is rate-limited per IP. Tokens are stored only as a SHA-256 hash and
 the plaintext is shown once at creation. The OpenAPI 3.0 spec is served at
 `GET /api/v1/openapi`.
 
+### Hosted MCP endpoint
+
+Beyond the local stdio server, the same 7 MCP tools are available over HTTP
+(Streamable HTTP, stateless JSON) at `POST /api/mcp`, authenticated with a
+bearer token. This lets a remote agent connect without running the server
+locally:
+
+```jsonc
+// agent MCP config (HTTP transport)
+{
+  "mcpServers": {
+    "context-hub": {
+      "url": "https://<your-host>/api/mcp",
+      "headers": { "Authorization": "Bearer cxh_…" }
+    }
+  }
+}
+```
+
 ## Observability
 
 API/health routes emit structured (JSON) logs to **stderr** and return an

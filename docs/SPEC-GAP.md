@@ -74,10 +74,11 @@ in-app notifications, observability (structured logs + request id) + admin
 
 Codeable here:
 
-- [ ] **Hosted MCP endpoint** — Streamable HTTP transport so remote agents can
-      connect (spec §6.2 / §12.4 / Phase 2).
-- [ ] **`submit_for_approval` MCP tool** — spec tool parity (draft → submit → publish).
-- [ ] **Search `version` filter** — finish P1 "stack/version 기반 검색 필터".
+- [x] **Hosted MCP endpoint** — `POST /api/mcp` (Streamable HTTP, stateless JSON),
+      bearer-token auth, all 7 tools. *(follow-up: scope tool results to the
+      token owner's team-private visibility — currently published/approved only.)*
+- [x] **`submit_for_approval` MCP tool** — spec tool parity (draft → submit → publish).
+- [x] **Search `version` filter** — P1 "stack/version 기반 검색 필터".
 - [ ] **CI Docker build job** — build the `Dockerfile` in CI.
 - [ ] **Release workflow** — tag → build → (publish) via GitHub Actions.
 
