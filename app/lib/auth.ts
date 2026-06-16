@@ -63,4 +63,17 @@ export async function getCurrentUser(): Promise<User | null> {
   return new UserRepository(db).getById(userId) ?? null;
 }
 
+/**
+ * Admins are listed in ADMIN_LOGINS (comma-separated). When that's unset there
+ * are no restrictions and any authenticated user is treated as an admin — handy
+ * for local/dev; set ADMIN_LOGINS in production.
+ */
+export function isAdmin(user: User): boolean {
+  const list = (process.env.ADMIN_LOGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return list.length === 0 || list.includes(user.login);
+}
+
 export type { User };

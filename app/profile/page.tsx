@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "../lib/auth";
+import { getCurrentUser, isAdmin } from "../lib/auth";
 import { getUserStats } from "../lib/hub";
 import { ProfileView } from "../components";
 
@@ -16,7 +16,12 @@ export default async function ProfilePage() {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: -8 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 14, marginBottom: -8 }}>
+        {isAdmin(me) && (
+          <Link href="/status" className="subtle">
+            Status →
+          </Link>
+        )}
         <Link href="/settings/tokens" className="subtle">
           API tokens →
         </Link>
