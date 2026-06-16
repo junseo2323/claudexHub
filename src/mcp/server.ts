@@ -9,10 +9,14 @@ import {
   publishContextCardSchema,
   makePublishContextCardHandler,
 } from "./tools/publish-context-card.js";
+import {
+  submitForApprovalSchema,
+  makeSubmitForApprovalHandler,
+} from "./tools/submit-for-approval.js";
 import { recordFeedbackSchema, makeRecordFeedbackHandler } from "./tools/record-feedback.js";
 import { markStaleSchema, makeMarkStaleHandler } from "./tools/mark-stale.js";
 
-/** Build an McpServer with the 4 Phase-1 tools registered against `db`. */
+/** Build an McpServer with the 7 context-hub tools registered against `db`. */
 export function buildServer(db: DB): McpServer {
   const repo = new Repository(db);
   const search = new SearchService(db);
@@ -56,6 +60,18 @@ export function buildServer(db: DB): McpServer {
       inputSchema: draftContextCardSchema,
     },
     makeDraftContextCardHandler(repo),
+  );
+
+  server.registerTool(
+    "submit_for_approval",
+    {
+      description:
+        "Move an AI-created draft to 'approved' (pending publish) and return a " +
+        "redaction report for the human to preview. Step between draft_context_card " +
+        "and publish_context_card.",
+      inputSchema: submitForApprovalSchema,
+    },
+    makeSubmitForApprovalHandler(repo),
   );
 
   server.registerTool(

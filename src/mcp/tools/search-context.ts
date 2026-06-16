@@ -4,6 +4,7 @@ import type { SearchService } from "../../domain/search.js";
 export const searchContextSchema = {
   query: z.string().describe("Natural-language problem description to search for"),
   stack: z.array(z.string()).optional().describe("Tech stack hints, e.g. ['Next.js','NestJS']"),
+  version: z.array(z.string()).optional().describe("Version tokens, e.g. ['Next.js 15','16']"),
   error: z.string().optional().describe("Error message or log snippet"),
   files: z.array(z.string()).optional().describe("Relevant file paths"),
   repo: z.string().optional().describe("Repository name (boosts cards with evidence from it)"),
@@ -24,6 +25,7 @@ export function makeSearchContextHandler(search: SearchService) {
     const results = await search.search({
       query: args.query,
       stack: args.stack,
+      version: args.version,
       error: args.error,
       files: args.files,
       repo: args.repo,

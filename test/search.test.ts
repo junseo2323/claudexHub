@@ -177,4 +177,25 @@ describe("hybrid search", () => {
     const results = await search.search({ query: "request fails", files: ["src/auth/cookie.ts"] });
     expect(results.find((r) => r.title === "Cookie helper bug")).toBeTruthy();
   });
+
+  it("version filter is accepted and surfaces env-matching cards", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    await repo.createCard(
+      cardInputSchema.parse({
+        title: "Next.js middleware redirect loop",
+        problem: "redirect loop in middleware on protected routes",
+        environment: { frontend: "Next.js 15" },
+        verifiedFix: ["return NextResponse.next()"],
+        status: "published",
+        visibility: "public",
+      }),
+    );
+    const search = new SearchService(db);
+    const results = await search.search({
+      query: "middleware redirect loop",
+      version: ["Next.js 15"],
+    });
+    expect(results.find((r) => r.title.includes("middleware redirect loop"))).toBeTruthy();
+  });
 });

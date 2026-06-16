@@ -4,6 +4,7 @@ import { Repository } from "../src/domain/repository.js";
 import { makeDraftContextCardHandler } from "../src/mcp/tools/draft-context-card.js";
 import { makePublishContextCardHandler } from "../src/mcp/tools/publish-context-card.js";
 import { makeGetContextCardHandler } from "../src/mcp/tools/get-context-card.js";
+import { makeSubmitForApprovalHandler } from "../src/mcp/tools/submit-for-approval.js";
 import { freshDb } from "./helpers.js";
 
 function parse(result: { content: { text: string }[] }) {
@@ -118,6 +119,28 @@ describe("MCP tool handlers", () => {
     expect(res.isError).toBeUndefined();
     expect(parse(res).status).toBe("published");
     expect(repo.getCard(card.id)?.visibility).toBe("public");
+  });
+
+  it("submit_for_approval moves a draft to approved with a redaction report", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const card = await repo.createCard({
+      title: "Clean", problem: "clean problem", environment: {}, symptoms: [], likelyCauses: [],
+      failedAttempts: [], verifiedFix: ["fix"], verification: [], agentHint: "", sourceLinks: [],
+      visibility: "private", status: "draft",
+    });
+    const submit = makeSubmitForApprovalHandler(repo);
+    const res = await submit({ id: card.id, visibility_suggestion: "public" });
+    const out = parse(res);
+    expect(out.status).toBe("approved");
+    expect(out.visibility_suggestion).toBe("public");
+    expect(out.redaction_report.findingsCount).toBe(0);
+    expect(repo.getCard(card.id)?.status).toBe("approved");
+
+    // Re-submitting a non-draft errors.
+    const again = await submit({ id: card.id });
+    expect(again.isError).toBe(true);
+    expect(parse(again).error).toBe("not_a_draft");
   });
 
   it("get_context_card agent_json returns a compact subset", async () => {
