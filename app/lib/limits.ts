@@ -1,15 +1,24 @@
-import { FixedWindowRateLimiter, clientIp, type RateLimitResult } from "../../src/rate-limit.js";
+import { getDb } from "../../src/db/connection.js";
+import { migrate } from "../../src/db/migrate.js";
+import { SqliteRateLimiter } from "../../src/rate-limit-store.js";
+import { clientIp, type RateLimitResult } from "../../src/rate-limit.js";
 
-// Up to 20 auth attempts per IP per minute (login/oauth handshakes).
-const authLimiter = new FixedWindowRateLimiter(20, 60_000);
-
-export function rateLimitAuth(headers: Headers): RateLimitResult {
-  return authLimiter.check(clientIp(headers));
+let ready = false;
+function db() {
+  const d = getDb();
+  if (!ready) {
+    migrate(d);
+    ready = true;
+  }
+  return d;
 }
 
-// Up to 60 programmatic API requests per IP per minute.
-const apiLimiter = new FixedWindowRateLimiter(60, 60_000);
+// Shared (cross-instance) limiters backed by the SQLite store.
+//   auth: 20 attempts / IP / minute · api: 60 requests / IP / minute
+export function rateLimitAuth(headers: Headers): RateLimitResult {
+  return new SqliteRateLimiter(db(), 20, 60_000).check(clientIp(headers));
+}
 
 export function rateLimitApi(headers: Headers): RateLimitResult {
-  return apiLimiter.check(clientIp(headers));
+  return new SqliteRateLimiter(db(), 60, 60_000).check(clientIp(headers));
 }
