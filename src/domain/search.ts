@@ -71,7 +71,13 @@ export class SearchService {
   async search(input: SearchInput): Promise<CardBrief[]> {
     const limit = Math.min(Math.max(input.limit ?? 5, 1), 10);
     const fileHints = fileTokens(input.files ?? []);
-    const queryText = [input.query, input.error, (input.stack ?? []).join(" "), fileHints.join(" ")]
+    const queryText = [
+      input.query,
+      input.error,
+      (input.stack ?? []).join(" "),
+      (input.version ?? []).join(" "),
+      fileHints.join(" "),
+    ]
       .filter(Boolean)
       .join(" ");
     const queryTerms = new Set(tokenize(queryText));
@@ -138,10 +144,10 @@ export class SearchService {
 
       let fused = config.keywordWeight * scores.kwScore + config.vectorWeight * scores.vecScore;
 
-      // Light env/stack boost.
+      // Light env/stack/version boost: matched stack or version tokens nudge up.
       const envValues = Object.values(card.environment).filter(Boolean).join(" ").toLowerCase();
       const envMatches: string[] = [];
-      for (const s of input.stack ?? []) {
+      for (const s of [...(input.stack ?? []), ...(input.version ?? [])]) {
         if (envValues.includes(s.toLowerCase())) envMatches.push(s);
       }
       if (envMatches.length) fused = Math.min(fused + 0.05, 1);

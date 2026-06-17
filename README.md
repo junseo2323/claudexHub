@@ -16,7 +16,7 @@ data. No OAuth or hosted endpoint yet — everything runs against a local SQLite
 > 📄 Product spec: [`docs/PLANNING.md`](./docs/PLANNING.md) · spec-vs-build gap
 > analysis: [`docs/SPEC-GAP.md`](./docs/SPEC-GAP.md).
 
-- **MCP server** (`src/index.ts`) exposing 6 tools over stdio.
+- **MCP server** (`src/index.ts`) exposing 7 tools over stdio.
 - **Local SQLite** store with **hybrid search**: FTS5 keyword + sqlite-vec
   embedding similarity, fused into a confidence score.
 - **Brief-first retrieval**: `search_context` returns compact briefs; full card
@@ -33,10 +33,11 @@ data. No OAuth or hosted endpoint yet — everything runs against a local SQLite
 
 | Tool | Purpose |
 | --- | --- |
-| `search_context` | Hybrid search → **brief** results only. Filters: `stack`, `error`, `files` (path hints feed matching), `repo` (boosts same-repo evidence), `min_confidence`. |
+| `search_context` | Hybrid search → **brief** results only. Filters: `stack`, `version`, `error`, `files` (path hints feed matching), `repo` (boosts same-repo evidence), `min_confidence`. |
 | `get_context_card` | Fetch one card; `mode` = `brief` \| `full` \| `agent_json` (compact, agent-optimized). |
 | `draft_context_card` | Create a redacted **draft** from a solved problem; auto-extracts stacks, symptoms, failed attempts, fix, commit sha, and GitHub commit/PR/issue source links from raw logs/diffs (heuristic, no LLM). |
-| `publish_context_card` | Publish a draft after `approve=true`; re-scans for secrets and blocks if any remain. |
+| `submit_for_approval` | Move an AI draft to **approved** (pending publish) and return a redaction report for the human to preview. |
+| `publish_context_card` | Publish a draft/approved card after `approve=true`; re-scans for secrets and blocks if any remain. |
 | `record_feedback` | Record reuse outcome (success/partial/failed); updates reuse counts, accumulated tokens saved, and confidence. |
 | `mark_stale` | Mark a card stale when its fix is outdated/wrong; stale cards drop out of search. |
 

@@ -83,6 +83,8 @@ export interface CardBrief {
 export interface SearchInput {
   query: string;
   stack?: string[];
+  /** Version tokens (e.g. "Next.js 15", "16") to bias toward matching cards. */
+  version?: string[];
   error?: string;
   files?: string[];
   repo?: string;

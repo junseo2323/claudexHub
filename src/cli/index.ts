@@ -157,6 +157,7 @@ program
   .command("search <query>")
   .description("Hybrid search")
   .option("--stack <stack>", "Comma-separated stack")
+  .option("--version <version>", "Comma-separated version tokens")
   .option("--error <error>")
   .option("--files <files>", "Comma-separated file paths")
   .option("--repo <repo>")
@@ -165,13 +166,14 @@ program
   .action(
     async (
       query: string,
-      opts: { stack?: string; error?: string; files?: string; repo?: string; minConfidence?: string; limit: string },
+      opts: { stack?: string; version?: string; error?: string; files?: string; repo?: string; minConfidence?: string; limit: string },
     ) => {
       migrate(getDb());
       const search = new SearchService(getDb());
       const results = await search.search({
         query,
         stack: opts.stack ? opts.stack.split(",").map((s) => s.trim()) : undefined,
+        version: opts.version ? opts.version.split(",").map((s) => s.trim()) : undefined,
         error: opts.error,
         files: opts.files ? opts.files.split(",").map((s) => s.trim()) : undefined,
         repo: opts.repo,

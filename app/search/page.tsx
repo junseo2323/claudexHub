@@ -17,18 +17,20 @@ function savedHref(s: { query: string; stack?: string; minConfidence?: number })
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; min?: string; stack?: string }>;
+  searchParams: Promise<{ q?: string; min?: string; stack?: string; version?: string }>;
 }) {
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const min = sp.min ? Number(sp.min) : undefined;
   const stack = (sp.stack ?? "").trim();
   const stackList = stack ? stack.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
+  const version = (sp.version ?? "").trim();
+  const versionList = version ? version.split(",").map((s) => s.trim()).filter(Boolean) : undefined;
   const me = await getCurrentUser();
   const saved = me ? listSavedSearches(me.id) : [];
 
   const results = q
-    ? await search({ query: q, stack: stackList, minConfidence: min, limit: 10 }, me?.id)
+    ? await search({ query: q, stack: stackList, version: versionList, minConfidence: min, limit: 10 }, me?.id)
     : [];
 
   return (
@@ -46,6 +48,7 @@ export default async function SearchPage({
         <button type="submit">Search</button>
         <div className="search-filters">
           <input type="text" name="stack" defaultValue={stack} placeholder="stack filter (comma-separated)" />
+          <input type="text" name="version" defaultValue={version} placeholder="version filter (e.g. Next.js 15)" />
           <label className="min-filter">
             min confidence
             <input type="number" name="min" min={0} max={100} defaultValue={sp.min ?? ""} placeholder="0" />
