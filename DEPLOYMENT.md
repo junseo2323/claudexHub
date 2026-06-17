@@ -78,3 +78,29 @@ AUTH_SECRET=... NODE_ENV=production npm run web:start
 `next.config.mjs` sets baseline headers (`X-Content-Type-Options`,
 `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`). Terminate TLS
 at your load balancer / reverse proxy; session cookies are `Secure` in production.
+
+## Go-live checklist
+
+The codebase is deployment-ready; these are the operational steps to actually
+ship (each needs a credential or a host — none are code changes):
+
+1. **Secrets** — generate `AUTH_SECRET` (`openssl rand -hex 32`) and set it on
+   every instance. `GET /api/health` returns `503` until this is set in
+   production, so it doubles as a readiness gate.
+2. **GitHub OAuth** — register an OAuth app, set the callback to
+   `https://<host>/api/auth/github/callback`, and set `GITHUB_CLIENT_ID` /
+   `GITHUB_CLIENT_SECRET`. (Without these, only the demo login is available.)
+3. **Admins** — set `ADMIN_LOGINS` so `/status` isn't open to every user.
+4. **Embeddings** — keep `EMBEDDING_PROVIDER=local` (no key, downloads the model)
+   or set `openai` + `OPENAI_API_KEY`. Never `noop` in production.
+5. **Deploy** — `AUTH_SECRET=… docker compose up --build`, or push the image to
+   your host (Fly/Render/ECS). Mount a persistent volume at `/data`.
+6. **Verify** — `curl https://<host>/api/health` returns `200`; the web app
+   loads; `POST /api/mcp` answers with a token (hosted MCP).
+7. **Publish the MCP package** (optional) — add an `NPM_TOKEN` repo secret, then
+   `git tag vX.Y.Z && git push --tags` to trigger `.github/workflows/release.yml`
+   (build → `npm publish` → GitHub release).
+
+After step 7, agents can connect with `npx -y ai-agent-context-hub` (stdio) or
+the hosted `/api/mcp` URL — see [`examples/`](./examples).
+
