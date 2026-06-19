@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getCurrentUser } from "../../../lib/auth";
+import { getCurrentUser, publicOrigin } from "../../../lib/auth";
 import { createApiToken } from "../../../lib/hub";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     // Bounce through login, then come back here to mint the token.
     const next = `/settings/tokens/cli?${params.toString()}`;
     return NextResponse.redirect(
-      `${req.nextUrl.origin}/login?next=${encodeURIComponent(next)}`,
+      `${publicOrigin(req)}/login?next=${encodeURIComponent(next)}`,
     );
   }
 
