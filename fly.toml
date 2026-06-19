@@ -1,37 +1,44 @@
-# Fly app names are globally unique. Change this before `fly launch` if the
-# name is already taken; the selected name becomes <app>.fly.dev.
-app = "ai-agent-context-hub-junseo2323"
-primary_region = "nrt"
+# Fly app names are globally unique; this app is `claudexhub`.
+# The hub_data volume lives in nrt, so primary_region must match it (a volume is
+# region-locked and attaches to a single Machine). Keep this a single Machine —
+# the app writes one SQLite database on the volume.
+app = 'claudexhub'
+primary_region = 'nrt'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  NODE_ENV = "production"
-  EMBEDDING_PROVIDER = "local"
-  HUB_DB_PATH = "/data/hub.db"
-  EMBED_DIM = "384"
-  HF_CACHE_DIR = "/data/models"
+  NODE_ENV = 'production'
+  EMBEDDING_PROVIDER = 'local'
+  HUB_DB_PATH = '/data/hub.db'
+  EMBED_DIM = '384'
+  HF_CACHE_DIR = '/data/models'
+  # Public origin for OAuth redirect/callback URLs (behind Fly's proxy
+  # req.nextUrl.origin resolves to localhost). Must match the GitHub OAuth app.
+  APP_ORIGIN = 'https://claudexhub.fly.dev'
 
 [[mounts]]
-  source = "hub_data"
-  destination = "/data"
+  source = 'hub_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 1
+  processes = ['app']
 
   [[http_service.checks]]
-    grace_period = "30s"
-    interval = "30s"
-    method = "GET"
-    timeout = "5s"
-    path = "/api/health"
+    grace_period = '30s'
+    interval = '30s'
+    method = 'GET'
+    timeout = '5s'
+    path = '/api/health'
 
 [[vm]]
-  cpu_kind = "shared"
+  memory = '1gb'
+  cpu_kind = 'shared'
   cpus = 1
-  memory = "1gb"
+  memory_mb = 1024

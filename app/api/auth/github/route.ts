@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { githubConfigured } from "../../../lib/auth";
+import { githubConfigured, publicOrigin } from "../../../lib/auth";
 import { rateLimitAuth } from "../../../lib/limits";
 
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "GitHub OAuth is not configured" }, { status: 501 });
   }
   const state = crypto.randomBytes(16).toString("hex");
-  const redirectUri = `${req.nextUrl.origin}/api/auth/github/callback`;
+  const redirectUri = `${publicOrigin(req)}/api/auth/github/callback`;
 
   const authorize = new URL("https://github.com/login/oauth/authorize");
   authorize.searchParams.set("client_id", process.env.GITHUB_CLIENT_ID!);
