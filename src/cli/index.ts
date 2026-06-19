@@ -3,7 +3,7 @@ import http from "node:http";
 import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { Command } from "commander";
 import { getDb } from "../db/connection.js";
 import { migrate } from "../db/migrate.js";
@@ -343,14 +343,91 @@ function openBrowser(url: string): void {
   }
 }
 
+const MCP_SERVER_NAME = "context-hub";
+const CODEX_TOKEN_ENV = "CONTEXT_HUB_TOKEN";
+
+/** True if a command resolves on PATH (no ENOENT when invoked). */
+function commandExists(cmd: string): boolean {
+  const r = spawnSync(cmd, ["--version"], { stdio: "ignore" });
+  return !r.error;
+}
+
+function run(cmd: string, args: string[]): { ok: boolean; err: string } {
+  const r = spawnSync(cmd, args, { encoding: "utf8" });
+  return { ok: r.status === 0, err: (r.stderr || r.stdout || "").trim() };
+}
+
+/** Register the hosted MCP endpoint with Claude Code (token inline in a header). */
+function registerClaude(mcpUrl: string, token: string): boolean {
+  run("claude", ["mcp", "remove", "-s", "user", MCP_SERVER_NAME]); // ignore if absent
+  const { ok, err } = run("claude", [
+    "mcp", "add", "-s", "user", "-t", "http", MCP_SERVER_NAME, mcpUrl,
+    "-H", `Authorization: Bearer ${token}`,
+  ]);
+  if (ok) console.log(`✅ Registered with Claude Code (user scope) as "${MCP_SERVER_NAME}".`);
+  else console.error(`⚠️  Claude registration failed: ${err}`);
+  return ok;
+}
+
+/**
+ * Register with Codex. Codex reads the bearer token from an env var (it does not
+ * accept a literal token), so we also persist that env var to the user's shell rc.
+ */
+function registerCodex(mcpUrl: string, token: string): boolean {
+  run("codex", ["mcp", "remove", MCP_SERVER_NAME]); // ignore if absent
+  const { ok, err } = run("codex", [
+    "mcp", "add", MCP_SERVER_NAME, "--url", mcpUrl,
+    "--bearer-token-env-var", CODEX_TOKEN_ENV,
+  ]);
+  if (!ok) {
+    console.error(`⚠️  Codex registration failed: ${err}`);
+    return false;
+  }
+  const rc = persistShellEnv(CODEX_TOKEN_ENV, token);
+  console.log(`✅ Registered with Codex as "${MCP_SERVER_NAME}".`);
+  if (rc) console.log(`   Wrote ${CODEX_TOKEN_ENV} to ${rc} — restart your shell or run: source ${rc}`);
+  else console.log(`   Set the token in your environment: export ${CODEX_TOKEN_ENV}=${token}`);
+  return true;
+}
+
+/** Idempotently persist `export NAME=value` to the user's shell rc file. */
+function persistShellEnv(name: string, value: string): string | null {
+  const shell = process.env.SHELL ?? "";
+  const rc = shell.includes("zsh")
+    ? ".zshrc"
+    : shell.includes("bash")
+      ? ".bashrc"
+      : shell.includes("fish")
+        ? null // fish syntax differs; skip auto-write
+        : ".profile";
+  if (!rc) return null;
+  const file = path.join(os.homedir(), rc);
+  let lines: string[] = [];
+  if (existsSync(file)) {
+    lines = readFileSync(file, "utf8").split("\n").filter((l) => !l.startsWith(`export ${name}=`));
+  }
+  if (lines.length && lines[lines.length - 1] !== "") lines.push("");
+  lines.push(`export ${name}=${value}`, "");
+  writeFileSync(file, lines.join("\n"));
+  return file;
+}
+
 program
   .command("login")
-  .description("Obtain an API token via the browser (loopback OAuth-style flow)")
+  .description("Obtain an API token via the browser and register the MCP server")
   .option("--host <url>", "Hub base URL", process.env.HUB_URL || "http://localhost:3000")
   .option("--name <name>", "Token name", `cli@${os.hostname()}`)
+  .option("--client <client>", "Register with: claude | codex | both | none (default: auto-detect)")
   .option("--no-open", "Print the URL instead of opening a browser")
-  .option("--print", "Print the token instead of saving it to ~/.context-hub")
-  .action(async (opts: { host: string; name: string; open: boolean; print?: boolean }) => {
+  .option("--print", "Print the token only; don't save or register")
+  .action(
+    async (opts: {
+      host: string;
+      name: string;
+      client?: string;
+      open: boolean;
+      print?: boolean;
+    }) => {
     const origin = opts.host.replace(/\/+$/, "");
     const state = crypto.randomBytes(16).toString("hex");
 
@@ -386,28 +463,46 @@ program
       }, 5 * 60_000).unref();
     });
 
-    if (opts.print) {
-      console.log(token.token);
-      return;
-    }
-    const file = saveCredential(origin, token);
-    console.log(`\n✅ Token saved to ${file}${token.login ? ` (as ${token.login})` : ""}`);
-    console.log("\nAgent MCP config (HTTP transport):");
-    console.log(
-      JSON.stringify(
-        {
-          mcpServers: {
-            "context-hub": {
-              url: `${origin}/api/mcp`,
-              headers: { Authorization: `Bearer ${token.token}` },
+      if (opts.print) {
+        console.log(token.token);
+        return;
+      }
+
+      const file = saveCredential(origin, token);
+      console.log(`\n✅ Token saved to ${file}${token.login ? ` (as ${token.login})` : ""}`);
+
+      const mcpUrl = `${origin}/api/mcp`;
+      const want = (opts.client ?? "auto").toLowerCase();
+      const doClaude =
+        want === "claude" || want === "both" || (want === "auto" && commandExists("claude"));
+      const doCodex =
+        want === "codex" || want === "both" || (want === "auto" && commandExists("codex"));
+
+      let registered = false;
+      if (want !== "none") {
+        if (doClaude) registered = registerClaude(mcpUrl, token.token) || registered;
+        if (doCodex) registered = registerCodex(mcpUrl, token.token) || registered;
+      }
+
+      if (!registered) {
+        console.log("\nNo agent CLI registered. Add this MCP server manually:");
+        console.log(
+          JSON.stringify(
+            {
+              mcpServers: {
+                [MCP_SERVER_NAME]: {
+                  url: mcpUrl,
+                  headers: { Authorization: `Bearer ${token.token}` },
+                },
+              },
             },
-          },
-        },
-        null,
-        2,
-      ),
-    );
-  });
+            null,
+            2,
+          ),
+        );
+      }
+    },
+  );
 
 program.parseAsync().catch((err) => {
   console.error(err);

@@ -66,7 +66,9 @@ export async function seed(): Promise<number> {
   return SEED_CARDS.length;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run only when executed directly (e.g. `tsx src/seed/seed.ts`). Matching the
+// source filename keeps this false when the module is inlined into a bundled bin.
+if (/\bseed\.[cm]?[jt]s$/.test(process.argv[1] ?? "")) {
   seed()
     .then((n) => logStderr(`Seeded ${n} context cards + ${DEMO_USERS.length} demo users`))
     .catch((err) => {
