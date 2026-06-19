@@ -6,22 +6,23 @@ import { getUnreadNotificationCount } from "./lib/hub";
 import { Avatar } from "./components";
 
 export const metadata = {
-  title: "AI Agent Context Hub",
-  description: "Agent-first developer knowledge platform — searchable, reusable Context Cards.",
+  title: "Context Hub — AI 에이전트를 위한 공유 메모리",
+  description: "한 번 해결한 개발 문제를 Claude Code와 Cursor가 검색하고 재사용하는 MCP 기반 컨텍스트 허브.",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
   const unread = user ? getUnreadNotificationCount(user.id) : 0;
   return (
-    <html lang="en">
+    <html lang="ko">
       <body>
         <header className="nav">
           <Link href="/" className="brand">
-            🧩 Context Hub
+            <span className="brand-mark">C</span>
+            <span>Context Hub</span>
           </Link>
           <nav>
-            <Link href="/">Dashboard</Link>
+            <Link href="/">Docs</Link>
             <Link href="/cards">Cards</Link>
             <Link href="/search">Search</Link>
             <Link href="/leaderboard">Leaderboard</Link>
@@ -46,7 +47,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           </nav>
         </header>
         <main className="container">{children}</main>
-        <footer className="footer">Phase 1 prototype · read-only view over the local Context Hub</footer>
+        <footer className="footer">
+          <span>Context Hub</span> · AI agents remember what your team already solved.
+        </footer>
       </body>
     </html>
   );
