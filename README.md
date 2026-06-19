@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/junseo2323/claudexhub/actions/workflows/ci.yml/badge.svg)](https://github.com/junseo2323/claudexhub/actions/workflows/ci.yml)
 
+[한국어 README](./README.ko.md)
+
 An **agent-first developer knowledge platform**. AI coding agents (Claude Code,
 Codex, Cursor) read and write **Context Cards** — structured problem-solving
 units — through an MCP server, so a fix solved once can be searched and reused

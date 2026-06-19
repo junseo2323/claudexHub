@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { devLoginEnabled, makeSessionToken, publicOrigin, sessionCookie } from "../../../lib/auth";
+import { devLoginEnabled, makeSessionToken, publicOrigin, safeNext, sessionCookie } from "../../../lib/auth";
 import { getOrCreateDevUser } from "../../../lib/hub";
 import { rateLimitAuth } from "../../../lib/limits";
 
@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
   const login = (req.nextUrl.searchParams.get("login") || "alice").trim();
   const user = getOrCreateDevUser(login);
 
-  const res = NextResponse.redirect(`${publicOrigin(req)}/profile`);
+  const next = safeNext(req.nextUrl.searchParams.get("next"));
+  const res = NextResponse.redirect(`${publicOrigin(req)}${next ?? "/profile"}`);
   res.cookies.set(sessionCookie.name, makeSessionToken(user.id), sessionCookie.options);
   return res;
 }

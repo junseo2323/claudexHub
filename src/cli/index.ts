@@ -1,4 +1,9 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import http from "node:http";
+import crypto from "node:crypto";
+import os from "node:os";
+import path from "node:path";
+import { spawn } from "node:child_process";
 import { Command } from "commander";
 import { getDb } from "../db/connection.js";
 import { migrate } from "../db/migrate.js";
@@ -303,6 +308,105 @@ program
   .action(async () => {
     const n = await repo().reindexAll();
     console.log(`Reindexed ${n} cards (embeddings=${config.embeddingProvider})`);
+  });
+
+/** Where the CLI persists tokens, keyed by hub origin. */
+function credentialsPath(): string {
+  return path.join(os.homedir(), ".context-hub", "credentials.json");
+}
+
+function saveCredential(origin: string, data: { token: string; login?: string }): string {
+  const file = credentialsPath();
+  mkdirSync(path.dirname(file), { recursive: true });
+  let store: Record<string, unknown> = {};
+  if (existsSync(file)) {
+    try {
+      store = JSON.parse(readFileSync(file, "utf8"));
+    } catch {
+      store = {};
+    }
+  }
+  store[origin] = { ...data, createdAt: new Date().toISOString() };
+  writeFileSync(file, JSON.stringify(store, null, 2) + "\n", { mode: 0o600 });
+  return file;
+}
+
+/** Best-effort open of a URL in the default browser; never throws. */
+function openBrowser(url: string): void {
+  const cmd =
+    process.platform === "darwin" ? "open" : process.platform === "win32" ? "cmd" : "xdg-open";
+  const args = process.platform === "win32" ? ["/c", "start", "", url] : [url];
+  try {
+    spawn(cmd, args, { stdio: "ignore", detached: true }).unref();
+  } catch {
+    /* fall back to the printed URL */
+  }
+}
+
+program
+  .command("login")
+  .description("Obtain an API token via the browser (loopback OAuth-style flow)")
+  .option("--host <url>", "Hub base URL", process.env.HUB_URL || "http://localhost:3000")
+  .option("--name <name>", "Token name", `cli@${os.hostname()}`)
+  .option("--no-open", "Print the URL instead of opening a browser")
+  .option("--print", "Print the token instead of saving it to ~/.context-hub")
+  .action(async (opts: { host: string; name: string; open: boolean; print?: boolean }) => {
+    const origin = opts.host.replace(/\/+$/, "");
+    const state = crypto.randomBytes(16).toString("hex");
+
+    const token = await new Promise<{ token: string; login?: string }>((resolve, reject) => {
+      const server = http.createServer((req, res) => {
+        const url = new URL(req.url ?? "/", "http://127.0.0.1");
+        const got = url.searchParams.get("state");
+        const tok = url.searchParams.get("token");
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        if (got !== state || !tok) {
+          res.statusCode = 400;
+          res.end("<p>Invalid login response. You can close this window.</p>");
+          return;
+        }
+        res.end("<p>✅ Logged in to Context Hub. You can close this window.</p>");
+        server.close();
+        resolve({ token: tok, login: url.searchParams.get("login") ?? undefined });
+      });
+      server.on("error", reject);
+      server.listen(0, "127.0.0.1", () => {
+        const addr = server.address();
+        const port = typeof addr === "object" && addr ? addr.port : 0;
+        const loginUrl =
+          `${origin}/settings/tokens/cli?port=${port}` +
+          `&state=${state}&name=${encodeURIComponent(opts.name)}`;
+        console.log(`Opening ${loginUrl}`);
+        console.log("If your browser didn't open, visit the URL above to authorize.");
+        if (opts.open) openBrowser(loginUrl);
+      });
+      setTimeout(() => {
+        server.close();
+        reject(new Error("Timed out waiting for browser login (5 min)."));
+      }, 5 * 60_000).unref();
+    });
+
+    if (opts.print) {
+      console.log(token.token);
+      return;
+    }
+    const file = saveCredential(origin, token);
+    console.log(`\n✅ Token saved to ${file}${token.login ? ` (as ${token.login})` : ""}`);
+    console.log("\nAgent MCP config (HTTP transport):");
+    console.log(
+      JSON.stringify(
+        {
+          mcpServers: {
+            "context-hub": {
+              url: `${origin}/api/mcp`,
+              headers: { Authorization: `Bearer ${token.token}` },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+    );
   });
 
 program.parseAsync().catch((err) => {

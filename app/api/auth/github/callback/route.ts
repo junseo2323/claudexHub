@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { makeSessionToken, publicOrigin, sessionCookie } from "../../../../lib/auth";
+import { makeSessionToken, publicOrigin, safeNext, sessionCookie } from "../../../../lib/auth";
 import { upsertGithubUser } from "../../../../lib/hub";
 
 export const runtime = "nodejs";
@@ -52,8 +52,10 @@ export async function GET(req: NextRequest) {
     avatarUrl: gh.avatar_url ?? undefined,
   });
 
-  const res = NextResponse.redirect(`${origin}/profile`);
+  const next = safeNext(req.cookies.get("ctxhub_oauth_next")?.value);
+  const res = NextResponse.redirect(`${origin}${next ?? "/profile"}`);
   res.cookies.set(sessionCookie.name, makeSessionToken(user.id), sessionCookie.options);
   res.cookies.delete("ctxhub_oauth_state");
+  res.cookies.delete("ctxhub_oauth_next");
   return res;
 }
