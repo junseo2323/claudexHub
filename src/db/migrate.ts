@@ -40,8 +40,9 @@ function migrateColumns(db: DB): void {
   }
 }
 
-// Allow `npm run migrate`.
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Allow `npm run migrate` (tsx). Matching the source filename keeps this false
+// when the module is inlined into a bundled bin (where argv[1] is the bundle).
+if (/\bmigrate\.[cm]?[jt]s$/.test(process.argv[1] ?? "")) {
   migrate();
   logStderr(`Migrated database at ${config.dbPath} (embed_dim=${config.embedDim})`);
 }
