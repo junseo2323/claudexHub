@@ -34,6 +34,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
                 <Link href="/notifications">
                   Notifications{unread > 0 ? <span className="notif-badge">{unread}</span> : null}
                 </Link>
+                <Link href="/settings/tokens">Tokens</Link>
                 <Link href="/profile" className="nav-user">
                   <Avatar user={user} size={22} /> {user.login}
                 </Link>

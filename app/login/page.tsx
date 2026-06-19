@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, githubConfigured, devLoginEnabled } from "../lib/auth";
+import { getCurrentUser, githubConfigured, devLoginEnabled, safeNext } from "../lib/auth";
 import { listDemoUsers } from "../lib/hub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
   const me = await getCurrentUser();
-  if (me) redirect("/profile");
+  const { next: rawNext } = await searchParams;
+  const next = safeNext(rawNext);
+  if (me) redirect(next ?? "/profile");
   const demoUsers = devLoginEnabled ? listDemoUsers() : [];
+  const q = next ? `?next=${encodeURIComponent(next)}` : "";
+  const devQ = (login: string) =>
+    next ? `?login=${login}&next=${encodeURIComponent(next)}` : `?login=${login}`;
 
   return (
     <>
@@ -18,7 +27,7 @@ export default async function LoginPage() {
 
       <div className="login-options">
         {githubConfigured && (
-          <a className="btn" href="/api/auth/github">
+          <a className="btn" href={`/api/auth/github${q}`}>
             Continue with GitHub
           </a>
         )}
@@ -33,12 +42,12 @@ export default async function LoginPage() {
               </p>
             )}
             {demoUsers.length === 0 ? (
-              <Link className="btn secondary" href="/api/auth/dev?login=alice">
+              <Link className="btn secondary" href={`/api/auth/dev${devQ("alice")}`}>
                 Sign in as demo user
               </Link>
             ) : (
               demoUsers.map((u) => (
-                <a key={u.id} className="btn secondary" href={`/api/auth/dev?login=${u.login}`}>
+                <a key={u.id} className="btn secondary" href={`/api/auth/dev${devQ(u.login)}`}>
                   Sign in as {u.name ?? u.login}
                 </a>
               ))

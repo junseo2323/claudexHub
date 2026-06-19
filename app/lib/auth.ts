@@ -64,6 +64,15 @@ export function publicOrigin(req: {
   return req.nextUrl.origin;
 }
 
+/**
+ * Sanitize a post-login `next` target: only same-app absolute paths are allowed
+ * (must start with a single `/`), preventing open-redirects to other hosts.
+ */
+export function safeNext(next: string | null | undefined): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 export const sessionCookie = {
   name: COOKIE,
   options: {

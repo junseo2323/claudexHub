@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { githubConfigured, publicOrigin } from "../../../lib/auth";
+import { githubConfigured, publicOrigin, safeNext } from "../../../lib/auth";
 import { rateLimitAuth } from "../../../lib/limits";
 
 export const runtime = "nodejs";
@@ -26,12 +26,15 @@ export async function GET(req: NextRequest) {
   authorize.searchParams.set("state", state);
 
   const res = NextResponse.redirect(authorize.toString());
-  res.cookies.set("ctxhub_oauth_state", state, {
+  const cookieOpts = {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     maxAge: 600,
     secure: process.env.NODE_ENV === "production",
-  });
+  };
+  res.cookies.set("ctxhub_oauth_state", state, cookieOpts);
+  const next = safeNext(req.nextUrl.searchParams.get("next"));
+  if (next) res.cookies.set("ctxhub_oauth_next", next, cookieOpts);
   return res;
 }
