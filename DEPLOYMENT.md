@@ -12,6 +12,7 @@ embedding model.
 | `AUTH_SECRET` | **prod** | HMAC key for session cookies. Set a long random value. |
 | `HUB_DB_PATH` | no | SQLite path. Default `./data/hub.db`; use a mounted volume in prod. |
 | `EMBEDDING_PROVIDER` | no | `local` (default), `openai`, or `noop`. Avoid `noop` in prod. |
+| `HF_CACHE_DIR` | no | Cache directory for local embedding models. Set it on persistent storage in prod. |
 | `OPENAI_API_KEY` | if openai | Required when `EMBEDDING_PROVIDER=openai`. |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | optional | Enables GitHub OAuth; otherwise the demo login is used. |
 | `AUTH_ALLOW_DEV` | optional | `1` to keep demo login enabled alongside GitHub OAuth. |
@@ -104,3 +105,107 @@ ship (each needs a credential or a host — none are code changes):
 After step 7, agents can connect with `npx -y ai-agent-context-hub` (stdio) or
 the hosted `/api/mcp` URL — see [`examples/`](./examples).
 
+## Fly.io
+
+The checked-in [`fly.toml`](./fly.toml) runs one 1 GB shared-CPU Machine in
+Tokyo (`nrt`), mounts `hub_data` at `/data`, and keeps both SQLite
+(`/data/hub.db`) and the local embedding model cache (`/data/models`) on that
+volume. The service forces HTTPS and uses `/api/health` as its Fly readiness
+check.
+
+Fly app names are globally unique. Before creating the app, edit `app` in
+`fly.toml` if `ai-agent-context-hub-junseo2323` is unavailable. The final name
+becomes both the default hostname and the GitHub OAuth origin.
+
+### 1. Create the app and volume
+
+Install and authenticate `flyctl`, then run from the repository root:
+
+```bash
+fly launch --no-deploy
+fly volumes create hub_data --region nrt --size 1
+```
+
+Keep the volume in the same region as `primary_region`. One GB is sufficient
+for the initial SQLite database and approximately 90 MB local model, but monitor
+usage as data grows.
+
+### 2. Configure GitHub OAuth and secrets
+
+After the Fly app name is final, create a GitHub OAuth app under **Settings →
+Developer settings → OAuth Apps → New OAuth App**:
+
+- Homepage URL: `https://<app-name>.fly.dev`
+- Authorization callback URL:
+  `https://<app-name>.fly.dev/api/auth/github/callback`
+
+The callback routes derive their origin from the incoming request, so the OAuth
+app name and Fly hostname must match. Fly terminates TLS and forwards the HTTPS
+request metadata; `force_https = true` redirects plain HTTP before authentication.
+
+Store secrets in Fly's encrypted secret store, never in `fly.toml`:
+
+```bash
+fly secrets set \
+  AUTH_SECRET="$(openssl rand -hex 32)" \
+  GITHUB_CLIENT_ID="<github-client-id>" \
+  GITHUB_CLIENT_SECRET="<github-client-secret>" \
+  ADMIN_LOGINS="junseo2323"
+```
+
+Do not set `AUTH_ALLOW_DEV` in production. Without `ADMIN_LOGINS`, every
+authenticated user is treated as an administrator. Without `AUTH_SECRET`,
+`/api/health` returns `503` and the deployment cannot become ready.
+
+### 3. Deploy
+
+```bash
+fly config validate
+fly deploy
+fly scale count 1
+fly status
+fly volumes list
+```
+
+This deployment must stay at exactly one Machine. A Fly Volume attaches to one
+Machine, and the app writes a single SQLite database. Do not scale above one
+until the database and rate limiter have moved to network services.
+
+The container runs migrations before starting Next.js. If seed data is needed:
+
+```bash
+fly ssh console -C "npm run seed"
+```
+
+### 4. Verify
+
+```bash
+# Readiness must return HTTP 200.
+curl -i https://<app-name>.fly.dev/api/health
+
+# Open the web app and complete one GitHub login round trip.
+fly apps open
+
+# After issuing a token in /settings/tokens, verify hosted MCP.
+curl -X POST https://<app-name>.fly.dev/api/mcp \
+  -H "Authorization: Bearer cxh_…" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+
+# Verify the authenticated HTTP search API.
+curl -H "Authorization: Bearer cxh_…" \
+  "https://<app-name>.fly.dev/api/v1/search?q=kakao%20cookie&limit=5"
+```
+
+Finally, restart the Machine and inspect logs to confirm the model is reused
+from `/data/models` rather than downloaded again:
+
+```bash
+fly machines list
+fly machine restart <machine-id>
+fly logs
+```
+
+The first local embedding request can briefly spike memory while ONNX loads the
+model. Start with the configured 1 GB; if Fly logs show an out-of-memory exit,
+change `memory` in `fly.toml` to `"2gb"` and redeploy.

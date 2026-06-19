@@ -1,0 +1,37 @@
+# Fly app names are globally unique. Change this before `fly launch` if the
+# name is already taken; the selected name becomes <app>.fly.dev.
+app = "ai-agent-context-hub-junseo2323"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  EMBEDDING_PROVIDER = "local"
+  HUB_DB_PATH = "/data/hub.db"
+  EMBED_DIM = "384"
+  HF_CACHE_DIR = "/data/models"
+
+[[mounts]]
+  source = "hub_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/api/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"
