@@ -1,16 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { makeSessionToken, sessionCookie } from "../../../../lib/auth";
+import { makeSessionToken, publicOrigin, sessionCookie } from "../../../../lib/auth";
 import { upsertGithubUser } from "../../../../lib/hub";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
+  const origin = publicOrigin(req);
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
   const saved = req.cookies.get("ctxhub_oauth_state")?.value;
 
   if (!code || !state || !saved || state !== saved) {
-    return NextResponse.redirect(`${req.nextUrl.origin}/login?error=oauth_state`);
+    return NextResponse.redirect(`${origin}/login?error=oauth_state`);
   }
 
   // Exchange the code for an access token.
@@ -21,12 +22,12 @@ export async function GET(req: NextRequest) {
       client_id: process.env.GITHUB_CLIENT_ID,
       client_secret: process.env.GITHUB_CLIENT_SECRET,
       code,
-      redirect_uri: `${req.nextUrl.origin}/api/auth/github/callback`,
+      redirect_uri: `${origin}/api/auth/github/callback`,
     }),
   });
   const token = (await tokenRes.json()) as { access_token?: string };
   if (!token.access_token) {
-    return NextResponse.redirect(`${req.nextUrl.origin}/login?error=oauth_token`);
+    return NextResponse.redirect(`${origin}/login?error=oauth_token`);
   }
 
   // Fetch the authenticated user's profile.
@@ -51,7 +52,7 @@ export async function GET(req: NextRequest) {
     avatarUrl: gh.avatar_url ?? undefined,
   });
 
-  const res = NextResponse.redirect(`${req.nextUrl.origin}/profile`);
+  const res = NextResponse.redirect(`${origin}/profile`);
   res.cookies.set(sessionCookie.name, makeSessionToken(user.id), sessionCookie.options);
   res.cookies.delete("ctxhub_oauth_state");
   return res;

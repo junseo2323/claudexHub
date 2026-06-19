@@ -41,6 +41,29 @@ function verify(token: string): string | null {
   return userId;
 }
 
+/**
+ * Resolve the app's public origin for building OAuth redirect/callback URLs.
+ * Behind a proxy (e.g. Fly), `req.nextUrl.origin` can resolve to the internal
+ * `localhost:3000`, which breaks the OAuth round trip. Prefer an explicit
+ * `APP_ORIGIN`, then the forwarded host/proto headers, then `nextUrl.origin`.
+ */
+export function publicOrigin(req: {
+  headers: Headers;
+  nextUrl: { origin: string };
+}): string {
+  const explicit = process.env.APP_ORIGIN?.trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (host) {
+    const proto =
+      req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+      (process.env.NODE_ENV === "production" ? "https" : "http");
+    return `${proto}://${host}`;
+  }
+  return req.nextUrl.origin;
+}
+
 export const sessionCookie = {
   name: COOKIE,
   options: {
