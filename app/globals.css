@@ -553,6 +553,57 @@ th {
   position: relative;
 }
 
+.docs-subnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  margin-top: -10px;
+  border-bottom: 1px solid rgba(37, 46, 61, 0.7);
+}
+
+.docs-subnav nav {
+  display: flex;
+  gap: 20px;
+}
+
+.docs-subnav nav a {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.docs-subnav nav a:hover {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.locale-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0a0e14;
+}
+
+.locale-toggle button {
+  min-width: 42px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 5px;
+  color: #6f7b8e;
+  background: transparent;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.locale-toggle button.active {
+  color: var(--text);
+  background: var(--panel-2);
+  box-shadow: 0 0 0 1px #2b3545 inset;
+}
+
 .docs-hero {
   position: relative;
   display: grid;
@@ -950,24 +1001,29 @@ th {
   background: #0b1016;
 }
 
-.quickstart-steps > div {
+.quickstart-steps > button {
   display: flex;
+  width: 100%;
   gap: 12px;
+  border: 0;
   padding: 13px 10px;
   border-radius: 9px;
   color: #687487;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
 }
 
-.quickstart-steps > div + div {
+.quickstart-steps > button + button {
   margin-top: 8px;
 }
 
-.quickstart-steps > div.active {
+.quickstart-steps > button.active {
   color: var(--text);
   background: rgba(138, 164, 255, 0.08);
 }
 
-.quickstart-steps > div > span {
+.quickstart-steps > button > span {
   display: grid;
   place-items: center;
   flex: 0 0 26px;
@@ -977,13 +1033,13 @@ th {
   font-size: 11px;
 }
 
-.quickstart-steps .active > span {
+.quickstart-steps button.active > span {
   color: #0b0f15;
   border-color: transparent;
   background: var(--accent-strong);
 }
 
-.quickstart-steps div div {
+.quickstart-steps button div {
   display: flex;
   flex-direction: column;
 }
@@ -999,6 +1055,35 @@ th {
 
 .quickstart-content {
   padding: 38px 42px 42px;
+}
+
+.prerequisite {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 28px;
+  padding: 12px 14px;
+  border: 1px solid #273244;
+  border-radius: 8px;
+  color: #8490a3;
+  background: rgba(138, 164, 255, 0.035);
+  font-size: 11px;
+}
+
+.prerequisite b {
+  flex: 0 0 auto;
+  color: #b9c5f0;
+}
+
+.token-button {
+  width: fit-content;
+  margin-top: 18px;
+}
+
+.verify-copy {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .step-label {
@@ -1129,6 +1214,105 @@ th {
   color: #7f8b9d;
   background: rgba(94, 234, 212, 0.035);
   font-size: 11px;
+}
+
+.usage-steps {
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+}
+
+.usage-step {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+  gap: 54px;
+  align-items: start;
+  padding: 44px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.usage-step .copy-block {
+  margin-top: 0;
+}
+
+.usage-copy h3 {
+  margin: 14px 0 10px;
+  font-size: 21px;
+}
+
+.usage-copy p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.capture-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.capture-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.capture-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 23px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: linear-gradient(145deg, rgba(20, 27, 38, 0.9), rgba(12, 17, 24, 0.85));
+}
+
+.capture-card h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+
+.capture-card > p {
+  min-height: 92px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.capture-card .copy-block {
+  flex: 1;
+}
+
+.capture-card .copy-block pre {
+  font-size: 9px;
+}
+
+.stale-guide {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 50px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 28px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 13px;
+  background: rgba(251, 191, 36, 0.035);
+}
+
+.stale-guide h3 {
+  margin: 0 0 9px;
+  font-size: 18px;
+}
+
+.stale-guide p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.stale-guide .copy-block {
+  margin-top: 0;
 }
 
 .first-prompt b {
@@ -1331,6 +1515,44 @@ th {
   justify-content: center;
 }
 
+.tips-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--border);
+}
+
+.tips-grid article {
+  min-height: 190px;
+  padding: 24px;
+  background: #0d1219;
+}
+
+.tips-grid article > span {
+  color: #4f5c70;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+}
+
+.tips-grid h3 {
+  margin: 28px 0 9px;
+  font-size: 16px;
+}
+
+.tips-grid p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 @media (max-width: 900px) {
   .nav {
     gap: 14px;
@@ -1357,15 +1579,32 @@ th {
   }
   .quickstart-steps {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
-  .quickstart-steps > div + div {
+  .quickstart-steps > button + button {
     margin-top: 0;
   }
   .workflow-grid {
     grid-template-columns: 1fr;
+  }
+  .usage-step {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .capture-grid {
+    grid-template-columns: 1fr;
+  }
+  .capture-card > p {
+    min-height: 0;
+  }
+  .stale-guide {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .tips-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
   .workflow-card {
     min-height: 245px;
@@ -1394,6 +1633,12 @@ th {
   .docs-hero {
     min-height: auto;
     padding: 38px 0 60px;
+  }
+  .docs-subnav nav {
+    gap: 12px;
+  }
+  .docs-subnav nav a {
+    font-size: 10px;
   }
   .docs-hero h1 {
     font-size: 40px;
@@ -1442,11 +1687,13 @@ th {
     grid-template-columns: 1fr;
     padding: 12px;
   }
-  .quickstart-steps > div:not(.active) {
-    display: none;
-  }
   .quickstart-content {
     padding: 27px 18px 30px;
+  }
+  .prerequisite {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
   }
   .copy-block pre {
     font-size: 10px;
@@ -1460,6 +1707,12 @@ th {
   }
   .safety-card {
     padding: 32px 20px;
+  }
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+  .tips-grid article {
+    min-height: 0;
   }
   .redaction-demo > div {
     grid-template-columns: 1fr auto;
