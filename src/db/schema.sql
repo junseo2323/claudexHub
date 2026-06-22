@@ -1,4 +1,4 @@
--- AI Agent Context Hub — Phase 1 schema (single source of truth).
+-- ClaudexHub schema (single source of truth).
 -- The vec0 table's dimension placeholder __EMBED_DIM__ is replaced at runtime
 -- with the configured embedding dimension (see migrate.ts).
 

@@ -1,7 +1,7 @@
 {
-  "name": "ai-agent-context-hub",
-  "version": "0.2.0",
-  "description": "Agent-first developer knowledge platform — an MCP server + web app for searchable, reusable Context Cards",
+  "name": "claudexhub",
+  "version": "0.3.0",
+  "description": "ClaudexHub — shared engineering memory for AI coding agents",
   "type": "module",
   "license": "MIT",
   "keywords": [
@@ -25,8 +25,8 @@
     "url": "https://github.com/junseo2323/claudexHub/issues"
   },
   "bin": {
-    "context-hub": "dist/index.js",
-    "context-hub-cli": "dist/cli/index.js"
+    "claudexhub": "dist/index.js",
+    "claudexhub-cli": "dist/cli/index.js"
   },
   "files": [
     "dist",

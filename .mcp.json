@@ -1,11 +1,11 @@
 {
   "mcpServers": {
-    "context-hub": {
+    "claudexhub": {
       "command": "npx",
       "args": ["tsx", "src/index.ts"],
       "env": {
         "EMBEDDING_PROVIDER": "local",
-        "HUB_DB_PATH": "./data/hub.db"
+        "CLAUDEXHUB_DB_PATH": "./data/claudexhub.db"
       }
     }
   }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../lib/auth";
-import { getNotifications, markNotificationsRead } from "../lib/hub";
+import { getNotifications, markNotificationsRead } from "../lib/claudexhub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

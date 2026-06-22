@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
-import { getDraftForUser, scanCard, listTeamsForUser } from "../../lib/hub";
+import { getDraftForUser, scanCard, listTeamsForUser } from "../../lib/claudexhub";
 import { publishDraftAction, publishToTeamAction } from "../../lib/actions";
 import { EnvChips } from "../../components";
 

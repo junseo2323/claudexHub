@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser, publicOrigin } from "../../../lib/auth";
-import { createApiToken } from "../../../lib/hub";
+import { createApiToken } from "../../../lib/claudexhub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * CLI login bridge. The `context-hub-cli login` command starts a loopback HTTP
+ * CLI login bridge. The `claudexhub connect` command starts a loopback HTTP
  * server and opens the browser here with `?port=&state=&name=`. Once the user is
  * authenticated we mint an API token and 302 it back to the loopback listener,
  * which the CLI captures and stores. The token only ever travels to 127.0.0.1

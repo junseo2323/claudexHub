@@ -6,10 +6,8 @@ import { useEffect, useState } from "react";
 type Locale = "en" | "ko";
 type Agent = "claude" | "codex" | "cursor" | "antigravity";
 
-const releasePackage =
-  "https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz";
 const connectCommand = (agent: Agent) =>
-  `npx -y --package ${releasePackage} context-hub connect ${agent}`;
+  `npx -y claudexhub connect ${agent}`;
 
 const connectCommands: Record<Agent, string> = {
   claude: connectCommand("claude"),
@@ -25,7 +23,7 @@ const copy = {
       eyebrow: "Shared memory for AI coding agents",
       titleA: "Stop solving the same",
       titleB: "engineering problem twice.",
-      body: "Context Hub lets Claude Code, Codex, Cursor, and Antigravity search your team's proven fixes, apply only the relevant context, and save new solutions for the next agent.",
+      body: "ClaudexHub lets Claude Code, Codex, Cursor, and Antigravity search your team's proven fixes, apply only the relevant context, and save new solutions for the next agent.",
       start: "Start in 3 minutes",
       github: "View on GitHub",
       proof: ["Hosted MCP", "Automatic secret redaction", "Human-approved publishing"],
@@ -34,13 +32,13 @@ const copy = {
       result: "Check trust proxy and secure cookie settings together behind a reverse proxy.",
       response: "I found a verified fix from the same deployment environment. I’ll use this card as reference and validate it against the current code.",
       saved: "About 8,400 tokens saved",
-      aria: "Context Hub usage example",
+      aria: "ClaudexHub usage example",
     },
     metrics: ["MCP tools", "secret scan", "keyword + semantic", "live context cards"],
     quick: {
       kicker: "QUICKSTART",
       title: "One command connects your agent.",
-      body: "Sign in through the browser once. The CLI creates a hosted API token and registers Context Hub in your selected agent automatically.",
+      body: "Sign in through the browser once. The CLI creates a hosted API token and registers ClaudexHub in your selected agent automatically.",
       prereq: "Prerequisites",
       prereqBody: "Node.js 20 or newer and at least one supported agent installed.",
       tokenLabel: "STEP 1 · CHOOSE YOUR AGENT",
@@ -50,18 +48,18 @@ const copy = {
       agentHelp: {
         claude: "Registers the hosted HTTP MCP server in Claude Code user scope.",
         codex: "Registers the server with Codex CLI and configures its bearer-token environment variable.",
-        cursor: "Adds Context Hub to ~/.cursor/mcp.json while preserving your existing servers.",
-        antigravity: "Adds Context Hub to ~/.gemini/config/mcp_config.json, shared by Antigravity, its IDE, and CLI.",
+        cursor: "Adds ClaudexHub to ~/.cursor/mcp.json while preserving your existing servers.",
+        antigravity: "Adds ClaudexHub to ~/.gemini/config/mcp_config.json, shared by Antigravity, its IDE, and CLI.",
       },
       verifyLabel: "STEP 3 · VERIFY THE CONNECTION",
-      verifyBody: "Restart or refresh your agent if needed, confirm the seven Context Hub tools appear, then ask:",
-      verifyPrompt: "Search Context Hub for a verified fix similar to this error before debugging it from scratch.",
+      verifyBody: "Restart or refresh your agent if needed, confirm the seven ClaudexHub tools appear, then ask:",
+      verifyPrompt: "Search ClaudexHub for a verified fix similar to this error before debugging it from scratch.",
       connectNote: "The command connects to https://claudexhub.fly.dev/api/mcp. No JSON editing or local database setup is required.",
     },
     guide: {
       kicker: "USAGE GUIDE",
       title: "A complete search → apply → capture loop.",
-      body: "Context Hub works best when your agent searches before non-trivial debugging and records the verified result afterward.",
+      body: "ClaudexHub works best when your agent searches before non-trivial debugging and records the verified result afterward.",
       steps: [
         {
           number: "01",
@@ -119,7 +117,7 @@ then run the listed verification steps."`,
       steps: [
         {
           title: "1. Draft from evidence",
-          body: "Pass a work log, diff, test output, commit, or conversation. Context Hub extracts useful fields and redacts secrets before storage.",
+          body: "Pass a work log, diff, test output, commit, or conversation. ClaudexHub extracts useful fields and redacts secrets before storage.",
           code: `draft_context_card({
   source: "conversation",
   repo: "org/project",
@@ -180,7 +178,7 @@ then run the listed verification steps."`,
     safety: {
       kicker: "SAFE BY DEFAULT",
       title: "Keep the knowledge. Leave the secrets out.",
-      body: "Context Hub scans drafts before storage and scans again before publishing. API keys, JWTs, database URLs, emails, and other sensitive values are redacted.",
+      body: "ClaudexHub scans drafts before storage and scans again before publishing. API keys, JWTs, database URLs, emails, and other sensitive values are redacted.",
     },
     tips: {
       kicker: "BEST PRACTICES",
@@ -197,7 +195,7 @@ then run the listed verification steps."`,
     cta: {
       overline: "YOUR AGENTS ALREADY SOLVE HARD PROBLEMS",
       title: "Make sure the next agent remembers.",
-      body: "Connect Context Hub, run your first search, and start building reusable engineering memory today.",
+      body: "Connect ClaudexHub, run your first search, and start building reusable engineering memory today.",
       start: "Get started",
       search: "Search public knowledge",
     },
@@ -217,13 +215,13 @@ then run the listed verification steps."`,
       result: "리버스 프록시 환경에서는 trust proxy와 secure cookie 설정을 함께 확인하세요.",
       response: "같은 배포 환경에서 검증된 해결책을 찾았습니다. 현재 코드와 호환되는지 확인한 뒤 참고 자료로 적용할게요.",
       saved: "약 8,400 tokens 절약",
-      aria: "Context Hub 사용 예시",
+      aria: "ClaudexHub 사용 예시",
     },
     metrics: ["MCP 도구", "민감 정보 검사", "키워드 + 의미 검색", "공개 Context Card"],
     quick: {
       kicker: "빠른 시작",
       title: "명령어 한 줄로 에이전트를 연결하세요.",
-      body: "브라우저에서 한 번 로그인하면 CLI가 호스팅 API 토큰을 만들고 선택한 에이전트에 Context Hub를 자동 등록합니다.",
+      body: "브라우저에서 한 번 로그인하면 CLI가 호스팅 API 토큰을 만들고 선택한 에이전트에 ClaudexHub를 자동 등록합니다.",
       prereq: "준비 사항",
       prereqBody: "Node.js 20 이상과 지원되는 에이전트 중 하나가 설치되어 있어야 합니다.",
       tokenLabel: "STEP 1 · 에이전트 선택",
@@ -233,12 +231,12 @@ then run the listed verification steps."`,
       agentHelp: {
         claude: "Claude Code 사용자 범위에 호스팅 HTTP MCP 서버를 등록합니다.",
         codex: "Codex CLI에 서버를 등록하고 bearer token 환경 변수를 설정합니다.",
-        cursor: "기존 서버를 보존하면서 ~/.cursor/mcp.json에 Context Hub를 추가합니다.",
-        antigravity: "Antigravity, IDE, CLI가 공유하는 ~/.gemini/config/mcp_config.json에 Context Hub를 추가합니다.",
+        cursor: "기존 서버를 보존하면서 ~/.cursor/mcp.json에 ClaudexHub를 추가합니다.",
+        antigravity: "Antigravity, IDE, CLI가 공유하는 ~/.gemini/config/mcp_config.json에 ClaudexHub를 추가합니다.",
       },
       verifyLabel: "STEP 3 · 연결 확인",
-      verifyBody: "필요하면 에이전트를 재시작하거나 새로고침하고 Context Hub 도구 7개가 보이는지 확인한 다음 이렇게 요청하세요.",
-      verifyPrompt: "이 오류를 처음부터 디버깅하기 전에 Context Hub에서 비슷한 검증 사례를 먼저 찾아줘.",
+      verifyBody: "필요하면 에이전트를 재시작하거나 새로고침하고 ClaudexHub 도구 7개가 보이는지 확인한 다음 이렇게 요청하세요.",
+      verifyPrompt: "이 오류를 처음부터 디버깅하기 전에 ClaudexHub에서 비슷한 검증 사례를 먼저 찾아줘.",
       connectNote: "이 명령은 https://claudexhub.fly.dev/api/mcp에 연결합니다. JSON 편집이나 로컬 DB 설정은 필요 없습니다.",
     },
     guide: {
@@ -380,7 +378,7 @@ then run the listed verification steps."`,
     cta: {
       overline: "에이전트는 이미 어려운 문제를 해결하고 있습니다",
       title: "다음 에이전트가 그 해결책을 기억하게 하세요.",
-      body: "Context Hub를 연결하고 첫 검색을 실행해 재사용 가능한 엔지니어링 메모리를 만들어 보세요.",
+      body: "ClaudexHub를 연결하고 첫 검색을 실행해 재사용 가능한 엔지니어링 메모리를 만들어 보세요.",
       start: "지금 시작하기",
       search: "공개 지식 검색",
     },
@@ -476,7 +474,7 @@ export function DocsLanding({ cardsPublished }: { cardsPublished: number }) {
   const t = copy[locale];
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("context-hub-locale");
+    const saved = window.localStorage.getItem("claudexhub-locale");
     if (saved === "en" || saved === "ko") {
       setLocale(saved);
       document.documentElement.lang = saved;
@@ -485,7 +483,7 @@ export function DocsLanding({ cardsPublished }: { cardsPublished: number }) {
 
   function changeLocale(next: Locale) {
     setLocale(next);
-    window.localStorage.setItem("context-hub-locale", next);
+    window.localStorage.setItem("claudexhub-locale", next);
     document.documentElement.lang = next;
   }
 
@@ -518,7 +516,7 @@ export function DocsLanding({ cardsPublished }: { cardsPublished: number }) {
         <div className="hero-terminal" aria-label={t.hero.aria}>
           <div className="terminal-top">
             <div className="terminal-dots"><i /><i /><i /></div>
-            <span>agent · context-hub</span>
+            <span>agent · claudexhub</span>
             <span className="terminal-live">● connected</span>
           </div>
           <div className="terminal-body">

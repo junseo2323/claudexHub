@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { search, verifyApiToken } from "../../../lib/hub";
+import { search, verifyApiToken } from "../../../lib/claudexhub";
 import { rateLimitApi } from "../../../lib/limits";
 import { newRequestId, logEvent } from "../../../../src/logger.js";
 

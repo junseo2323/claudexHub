@@ -1,4 +1,4 @@
-import { getStats } from "./lib/hub";
+import { getStats } from "./lib/claudexhub";
 import { DocsLanding } from "./landing-client";
 
 export const dynamic = "force-dynamic";

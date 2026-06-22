@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ContextCard, CardBrief, User, UserSummary } from "./lib/hub";
+import type { ContextCard, CardBrief, User, UserSummary } from "./lib/claudexhub";
 
 export function Avatar({ user, size = 28 }: { user: Pick<User, "login" | "avatarUrl">; size?: number }) {
   const dim = { width: size, height: size, borderRadius: "50%", verticalAlign: "middle" };

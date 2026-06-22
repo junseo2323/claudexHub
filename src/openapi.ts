@@ -2,10 +2,10 @@
 export const openApiSpec = {
   openapi: "3.0.3",
   info: {
-    title: "AI Agent Context Hub API",
+    title: "ClaudexHub API",
     version: "1.0.0",
     description:
-      "Programmatic (non-MCP) access to the Context Hub. Authenticate with a bearer token created at /settings/tokens. Results respect the token owner's visibility.",
+      "Programmatic (non-MCP) access to ClaudexHub. Authenticate with a bearer token created at /settings/tokens. Results respect the token owner's visibility.",
   },
   servers: [{ url: "/" }],
   security: [{ bearerAuth: [] }],

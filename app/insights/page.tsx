@@ -1,4 +1,4 @@
-import { getActivity, getCalibration, getStats, getReverificationCount } from "../lib/hub";
+import { getActivity, getCalibration, getStats, getReverificationCount } from "../lib/claudexhub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +20,7 @@ export default function InsightsPage() {
       <h1>Insights</h1>
       <p className="subtle">
         Confidence calibration — how each confidence band's <em>observed</em> reuse success rate
-        compares to its score. A well-calibrated hub trends upward.
+        compares to its score. A well-calibrated ClaudexHub trends upward.
       </p>
 
       <div className="panel" style={{ marginTop: 18 }}>
@@ -56,7 +56,7 @@ export default function InsightsPage() {
       </div>
 
       <p className="subtle" style={{ marginTop: 14 }}>
-        Hub-wide: {pct(stats.reuseSuccessRate)} reuse success across{" "}
+        ClaudexHub-wide: {pct(stats.reuseSuccessRate)} reuse success across{" "}
         {stats.successfulReuseCount + stats.failedReuseCount} recorded reuses ·{" "}
         {stats.verifiedFixCount} verified fixes ·{" "}
         {needsReverify} card{needsReverify === 1 ? "" : "s"} may need re-verification.

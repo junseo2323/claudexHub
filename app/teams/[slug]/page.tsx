@@ -6,7 +6,7 @@ import {
   isTeamMember,
   isTeamOwner,
   listTeamCards,
-} from "../../lib/hub";
+} from "../../lib/claudexhub";
 import { addTeamMemberAction, removeTeamMemberAction } from "../../lib/actions";
 import { Avatar, CardRow } from "../../components";
 

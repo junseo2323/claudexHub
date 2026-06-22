@@ -14,7 +14,7 @@ describe("ApiTokenRepository", () => {
     const repo = new ApiTokenRepository(db);
     const { token, plaintext } = repo.create(alice.id, "ci-bot");
 
-    expect(plaintext.startsWith("cxh_")).toBe(true);
+    expect(plaintext.startsWith("clx_")).toBe(true);
     expect(token.name).toBe("ci-bot");
 
     // The plaintext is never stored.
@@ -31,7 +31,7 @@ describe("ApiTokenRepository", () => {
     const { token, plaintext } = repo.create(alice.id, "t");
 
     expect(repo.verify(plaintext)).toBe(alice.id);
-    expect(repo.verify("cxh_wrong")).toBeUndefined();
+    expect(repo.verify("clx_wrong")).toBeUndefined();
     expect(repo.verify("")).toBeUndefined();
     expect(repo.listForUser(alice.id)[0].lastUsedAt).toBeDefined();
     expect(repo.listForUser(alice.id)[0].id).toBe(token.id);

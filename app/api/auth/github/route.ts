@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
     maxAge: 600,
     secure: process.env.NODE_ENV === "production",
   };
-  res.cookies.set("ctxhub_oauth_state", state, cookieOpts);
+  res.cookies.set("claudexhub_oauth_state", state, cookieOpts);
   const next = safeNext(req.nextUrl.searchParams.get("next"));
-  if (next) res.cookies.set("ctxhub_oauth_next", next, cookieOpts);
+  if (next) res.cookies.set("claudexhub_oauth_next", next, cookieOpts);
   return res;
 }

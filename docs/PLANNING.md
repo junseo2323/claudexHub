@@ -1,4 +1,4 @@
-# AI Agent Context Hub 기획서
+# ClaudexHub 기획서
 
 > 공개 웹에서는 개발자의 기여도와 검증 지표를 보여주고, 내부에서는 Claude Code, Codex, Cursor 같은 AI coding agent들이 MCP/API를 통해 문제 해결 컨텍스트를 읽고 쓰는 **agent-first 개발 지식 플랫폼**.
 

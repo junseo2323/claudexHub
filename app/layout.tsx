@@ -2,13 +2,13 @@ import "./globals.css";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { getCurrentUser } from "./lib/auth";
-import { getUnreadNotificationCount } from "./lib/hub";
+import { getUnreadNotificationCount } from "./lib/claudexhub";
 import { Avatar } from "./components";
 
 export const metadata = {
-  title: "Context Hub — Shared memory for AI coding agents",
+  title: "ClaudexHub — Shared memory for AI coding agents",
   description:
-    "A hosted MCP context hub where Claude Code, Codex, Cursor, and Antigravity search, reuse, and improve verified engineering solutions.",
+    "ClaudexHub gives Claude Code, Codex, Cursor, and Antigravity shared access to verified engineering solutions.",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -20,7 +20,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <header className="nav">
           <Link href="/" className="brand">
             <span className="brand-mark">C</span>
-            <span>Context Hub</span>
+            <span>ClaudexHub</span>
           </Link>
           <nav>
             <Link href="/">Docs</Link>
@@ -49,7 +49,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         </header>
         <main className="container">{children}</main>
         <footer className="footer">
-          <span>Context Hub</span> · AI agents remember what your team already solved.
+          <span>ClaudexHub</span> · AI agents remember what your team already solved.
         </footer>
       </body>
     </html>

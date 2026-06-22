@@ -11,7 +11,7 @@ primary_region = 'nrt'
 [env]
   NODE_ENV = 'production'
   EMBEDDING_PROVIDER = 'local'
-  HUB_DB_PATH = '/data/hub.db'
+  CLAUDEXHUB_DB_PATH = '/data/hub.db'
   EMBED_DIM = '384'
   HF_CACHE_DIR = '/data/models'
   # Public origin for OAuth redirect/callback URLs (behind Fly's proxy

@@ -8,7 +8,7 @@ import {
   cardFreshness,
   getCardRelations,
   type RelationType,
-} from "../../lib/hub";
+} from "../../lib/claudexhub";
 import { getCurrentUser } from "../../lib/auth";
 import {
   markStaleAction,

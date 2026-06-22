@@ -1,6 +1,6 @@
-# AI Agent Context Hub
+# ClaudexHub
 
-[![CI](https://github.com/junseo2323/claudexhub/actions/workflows/ci.yml/badge.svg)](https://github.com/junseo2323/claudexhub/actions/workflows/ci.yml)
+[![CI](https://github.com/junseo2323/claudexHub/actions/workflows/ci.yml/badge.svg)](https://github.com/junseo2323/claudexHub/actions/workflows/ci.yml)
 
 [한국어 README](./README.ko.md)
 
@@ -9,7 +9,7 @@ Codex, Cursor, Antigravity) read and write **Context Cards** — structured prob
 units — through an MCP server, so a fix solved once can be searched and reused
 later instead of re-derived from scratch.
 
-The hosted Hub provides GitHub sign-in, API tokens, a remote MCP endpoint, and a
+ClaudexHub provides GitHub sign-in, API tokens, a remote MCP endpoint, and a
 web app for searching, reviewing, and publishing shared engineering knowledge.
 
 ## What's here
@@ -45,13 +45,13 @@ web app for searching, reviewing, and publishing shared engineering knowledge.
 ## Connect an agent
 
 Run one command. A browser opens for GitHub sign-in, then the CLI creates a
-hosted API token and registers Context Hub automatically:
+hosted API token and registers ClaudexHub automatically:
 
 ```bash
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect claude
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect codex
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect cursor
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect antigravity
+npx -y claudexhub connect claude
+npx -y claudexhub connect codex
+npx -y claudexhub connect cursor
+npx -y claudexhub connect antigravity
 ```
 
 Use `connect all` to configure every supported agent. No JSON editing or local
@@ -62,7 +62,7 @@ database setup is required. See the live guide at
 
 ```bash
 npm install
-cp .env.example .env          # adjust EMBEDDING_PROVIDER / HUB_DB_PATH if needed
+cp .env.example .env          # adjust EMBEDDING_PROVIDER / CLAUDEXHUB_DB_PATH if needed
 npm run migrate               # create the SQLite schema
 npm run seed                  # load 20 example cards
 ```
@@ -101,10 +101,10 @@ This repo ships a project-scoped `.mcp.json`:
 ```json
 {
   "mcpServers": {
-    "context-hub": {
+    "claudexhub": {
       "command": "npx",
       "args": ["tsx", "src/index.ts"],
-      "env": { "EMBEDDING_PROVIDER": "local", "HUB_DB_PATH": "./data/hub.db" }
+      "env": { "EMBEDDING_PROVIDER": "local", "CLAUDEXHUB_DB_PATH": "./data/claudexhub.db" }
     }
   }
 }
@@ -113,7 +113,7 @@ This repo ships a project-scoped `.mcp.json`:
 Or register it globally with absolute paths:
 
 ```bash
-claude mcp add context-hub --env EMBEDDING_PROVIDER=local -- npx tsx /abs/path/to/src/index.ts
+claude mcp add claudexhub --env EMBEDDING_PROVIDER=local -- npx tsx /abs/path/to/src/index.ts
 ```
 
 Then in Claude Code: confirm the tools appear, and try
@@ -123,7 +123,7 @@ Then in Claude Code: confirm the tools appear, and try
 
 A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 
-- **Dashboard** (`/`) — hub stats, top stacks, agent activity, reputation score.
+- **Dashboard** (`/`) — ClaudexHub stats, top stacks, agent activity, reputation score.
 - **Cards** (`/cards`, `/cards/[id]`) — browse cards (filter by stack/status) and view full detail (with author). Signed-in users can record reuse feedback (worked / partly / didn't), feeding reuse counts, confidence, and the author's reputation. Authors can **link cards** (supersedes / duplicate / related) to build a knowledge graph (Phase 7).
 - **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool, with stack and min-confidence filters. Signed-in users can **save searches** and re-run them later (Phase 7).
 - **Leaderboard** (`/leaderboard`) — contributors ranked by reputation.
@@ -169,7 +169,7 @@ npm run web:start                 # serve at http://localhost:3000
 ```
 
 > The web build uses the webpack builder (`--webpack`) so `.js`→`.ts` resolution
-> applies to the reused `src/` domain modules. `EMBEDDING_PROVIDER`/`HUB_DB_PATH`
+> applies to the reused `src/` domain modules. `EMBEDDING_PROVIDER`/`CLAUDEXHUB_DB_PATH`
 > are read the same way as the MCP server.
 
 ## Scripts
@@ -190,7 +190,7 @@ npm run web:start                 # serve at http://localhost:3000
 Core domain logic (storage, search, redaction, scoring, stats, embeddings) lives in
 `src/domain/` and `src/embeddings/` with **no MCP/SDK dependency**, so it's
 reused by the MCP server, the CLI, the seed script, tests, **and the web app**
-(`app/lib/hub.ts` imports it directly). `src/mcp/` is a thin adapter.
+(`app/lib/claudexhub.ts` imports it directly). `src/mcp/` is a thin adapter.
 
 SQLite coordinates three tables, kept in sync inside a single transaction on
 every write (no triggers — embeddings are computed in app code):
@@ -205,7 +205,7 @@ every write (no triggers — embeddings are computed in app code):
   source quality, verification, recency, and reuse success, minus penalties for
   failed reuse and stale/deprecated status. `confidenceBreakdown()` exposes the
   components; `computeConfidence()` returns the clamped 0-100 score.
-- **Hub stats** (`src/domain/stats.ts`) — aggregates over cards and the
+- **ClaudexHub stats** (`src/domain/stats.ts`) — aggregates over cards and the
   `agent_usage` ledger: verified fixes, realized tokens saved, reuse success
   rate, stale/commit/evidence ratios, top stacks, per-agent breakdown, and a
   **reputation score** (the spec's leaderboard Rank Score). View with
@@ -221,11 +221,11 @@ every write (no triggers — embeddings are computed in app code):
 
 ## HTTP API
 
-Beyond MCP, the hub exposes a token-authenticated search endpoint. Create a
+Beyond MCP, ClaudexHub exposes a token-authenticated search endpoint. Create a
 token at `/settings/tokens`, then:
 
 ```bash
-curl -H "Authorization: Bearer cxh_…" \
+curl -H "Authorization: Bearer clx_…" \
   "http://localhost:3000/api/v1/search?q=kakao%20cookie&limit=5"
 ```
 
@@ -245,9 +245,9 @@ locally:
 // agent MCP config (HTTP transport)
 {
   "mcpServers": {
-    "context-hub": {
+    "claudexhub": {
       "url": "https://<your-host>/api/mcp",
-      "headers": { "Authorization": "Bearer cxh_…" }
+      "headers": { "Authorization": "Bearer clx_…" }
     }
   }
 }

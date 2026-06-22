@@ -9,7 +9,7 @@ export default defineConfig({
     // no model download and no network.
     env: {
       EMBEDDING_PROVIDER: "noop",
-      HUB_DB_PATH: ":memory:",
+      CLAUDEXHUB_DB_PATH: ":memory:",
     },
   },
 });

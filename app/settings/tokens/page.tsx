@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../../lib/auth";
-import { listApiTokens } from "../../lib/hub";
+import { listApiTokens } from "../../lib/claudexhub";
 import { createApiTokenAction, revokeApiTokenAction } from "../../lib/actions";
 import { NEW_TOKEN_COOKIE } from "../../lib/constants";
 

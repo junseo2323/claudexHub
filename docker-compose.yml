@@ -8,11 +8,11 @@ services:
     environment:
       NODE_ENV: production
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
-      HUB_DB_PATH: /data/hub.db
+      CLAUDEXHUB_DB_PATH: /data/hub.db
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET (e.g. openssl rand -hex 32)}
       # GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET: set to enable GitHub OAuth.
     volumes:
-      - hub-data:/data
+      - claudexhub-data:/data
 
 volumes:
-  hub-data:
+  claudexhub-data:

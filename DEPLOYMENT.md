@@ -10,7 +10,7 @@ embedding model.
 | Variable | Required | Notes |
 | --- | --- | --- |
 | `AUTH_SECRET` | **prod** | HMAC key for session cookies. Set a long random value. |
-| `HUB_DB_PATH` | no | SQLite path. Default `./data/hub.db`; use a mounted volume in prod. |
+| `CLAUDEXHUB_DB_PATH` | no | SQLite path. Default `./data/claudexhub.db`; use a mounted volume in prod. |
 | `EMBEDDING_PROVIDER` | no | `local` (default), `openai`, or `noop`. Avoid `noop` in prod. |
 | `HF_CACHE_DIR` | no | Cache directory for local embedding models. Set it on persistent storage in prod. |
 | `OPENAI_API_KEY` | if openai | Required when `EMBEDDING_PROVIDER=openai`. |
@@ -34,12 +34,12 @@ Then set `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` and a strong `AUTH_SECRET`.
 ## Docker
 
 ```bash
-docker build -t context-hub .
+docker build -t claudexhub .
 docker run -p 3000:3000 \
   -e AUTH_SECRET="$(openssl rand -hex 32)" \
   -e EMBEDDING_PROVIDER=local \
-  -v context-hub-data:/data \
-  context-hub
+  -v claudexhub-data:/data \
+  claudexhub
 ```
 
 The image runs `npm run migrate` on boot and serves on port 3000. The `/data`
@@ -51,7 +51,7 @@ volume persists the SQLite store (and, for the local provider, the model cache).
 AUTH_SECRET=$(openssl rand -hex 32) docker compose up --build
 ```
 
-Brings up the web app on port 3000 with a persistent `hub-data` volume. Set
+Brings up the web app on port 3000 with a persistent `claudexhub-data` volume. Set
 `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` to enable GitHub OAuth (otherwise the
 demo login is used).
 
@@ -102,7 +102,7 @@ ship (each needs a credential or a host — none are code changes):
    `git tag vX.Y.Z && git push --tags` to trigger `.github/workflows/release.yml`
    (build → `npm publish` → GitHub release).
 
-After step 7, agents can connect with `npx -y ai-agent-context-hub` (stdio) or
+After step 7, agents can connect with `npx -y claudexhub` (stdio) or
 the hosted `/api/mcp` URL — see [`examples/`](./examples).
 
 ## Fly.io
@@ -114,7 +114,7 @@ volume. The service forces HTTPS and uses `/api/health` as its Fly readiness
 check.
 
 Fly app names are globally unique. Before creating the app, edit `app` in
-`fly.toml` if `ai-agent-context-hub-junseo2323` is unavailable. The final name
+`fly.toml` if `claudexhub-junseo2323` is unavailable. The final name
 becomes both the default hostname and the GitHub OAuth origin.
 
 ### 1. Create the app and volume
@@ -188,12 +188,12 @@ fly apps open
 
 # After issuing a token in /settings/tokens, verify hosted MCP.
 curl -X POST https://<app-name>.fly.dev/api/mcp \
-  -H "Authorization: Bearer cxh_…" \
+  -H "Authorization: Bearer clx_…" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 
 # Verify the authenticated HTTP search API.
-curl -H "Authorization: Bearer cxh_…" \
+curl -H "Authorization: Bearer clx_…" \
   "https://<app-name>.fly.dev/api/v1/search?q=kakao%20cookie&limit=5"
 ```
 
