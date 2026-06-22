@@ -6,11 +6,16 @@ import { useEffect, useState } from "react";
 type Locale = "en" | "ko";
 type Agent = "claude" | "codex" | "cursor" | "antigravity";
 
+const releasePackage =
+  "https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz";
+const connectCommand = (agent: Agent) =>
+  `npx -y --package ${releasePackage} context-hub connect ${agent}`;
+
 const connectCommands: Record<Agent, string> = {
-  claude: "npx -y ai-agent-context-hub connect claude",
-  codex: "npx -y ai-agent-context-hub connect codex",
-  cursor: "npx -y ai-agent-context-hub connect cursor",
-  antigravity: "npx -y ai-agent-context-hub connect antigravity",
+  claude: connectCommand("claude"),
+  codex: connectCommand("codex"),
+  cursor: connectCommand("cursor"),
+  antigravity: connectCommand("antigravity"),
 };
 
 const copy = {
