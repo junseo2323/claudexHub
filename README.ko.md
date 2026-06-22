@@ -1,24 +1,23 @@
-# AI Agent Context Hub — Phase 1 (로컬 MCP 프로토타입)
+# AI Agent Context Hub
 
 [![CI](https://github.com/junseo2323/claudexhub/actions/workflows/ci.yml/badge.svg)](https://github.com/junseo2323/claudexhub/actions/workflows/ci.yml)
 
 [English README](./README.md)
 
 **에이전트 중심 개발자 지식 플랫폼**입니다. AI 코딩 에이전트(Claude Code,
-Codex, Cursor)가 MCP 서버를 통해 구조화된 문제 해결 단위인 **Context Card**를
+Codex, Cursor, Antigravity)가 MCP 서버를 통해 구조화된 문제 해결 단위인 **Context Card**를
 읽고 씁니다. 한 번 해결한 문제를 처음부터 다시 분석하는 대신, 나중에 검색하여
 재사용할 수 있습니다.
 
-이 저장소는 **Phase 1**으로, Claude Code에 연결할 수 있는 stdio MCP 서버와
-동일한 데이터를 보여주는 **웹 앱**을 중심으로 한 로컬 우선 프로토타입입니다.
-모든 데이터는 로컬 SQLite 저장소를 사용합니다.
+호스팅 Hub는 GitHub 로그인, API 토큰, 원격 MCP 엔드포인트와 함께 공유된
+엔지니어링 지식을 검색·검토·게시하는 웹 앱을 제공합니다.
 
 ## 구성 요소
 
 > 📄 제품 명세: [`docs/PLANNING.md`](./docs/PLANNING.md) · 명세와 구현 차이 분석:
 > [`docs/SPEC-GAP.md`](./docs/SPEC-GAP.md)
 
-- stdio 방식으로 7개 도구를 제공하는 **MCP 서버** (`src/index.ts`)
+- 호스팅 HTTP와 로컬 stdio 방식으로 7개 도구를 제공하는 **MCP 서버**
 - FTS5 키워드 검색과 sqlite-vec 임베딩 유사도를 신뢰도 점수로 결합하는
   **하이브리드 검색** 기반의 **로컬 SQLite** 저장소
 - **요약 우선 검색**: `search_context`는 간결한 요약만 반환하며, 토큰 절약을
@@ -43,18 +42,21 @@ Codex, Cursor)가 MCP 서버를 통해 구조화된 문제 해결 단위인 **Co
 | `record_feedback` | 재사용 결과(`success`, `partial`, `failed`)를 기록하고 재사용 횟수, 누적 절약 토큰, 신뢰도를 갱신합니다. |
 | `mark_stale` | 해결책이 오래되었거나 잘못된 경우 카드를 오래된 상태로 표시합니다. 오래된 카드는 검색 결과에서 제외됩니다. |
 
-## 빠른 시작
+## 에이전트 연결
 
-배포된 MCP 서버를 `npx`로 실행할 수 있습니다. 아래 명령 하나로 로컬 DB
-스키마와 시드 카드를 준비한 다음 에이전트에 연결하세요.
+명령어 한 줄을 실행하세요. GitHub 로그인을 위한 브라우저가 열리고, CLI가
+호스팅 API 토큰을 만든 뒤 Context Hub를 자동 등록합니다.
 
 ```bash
-npx -y ai-agent-context-hub context-hub-cli init   # 스키마 + 시드 카드 20개
+npx -y ai-agent-context-hub connect claude
+npx -y ai-agent-context-hub connect codex
+npx -y ai-agent-context-hub connect cursor
+npx -y ai-agent-context-hub connect antigravity
 ```
 
-바로 복사해 쓸 수 있는 Claude Code와 Cursor 설정은
-[`examples/`](./examples)에 있습니다. 패키지는 `context-hub`(기본 MCP 서버)와
-`context-hub-cli`(개발/관리 CLI), 두 개의 실행 파일을 제공합니다.
+지원되는 에이전트를 모두 설정하려면 `connect all`을 사용하세요. JSON 편집이나
+로컬 DB 설정은 필요 없습니다. 자세한 사용법은
+[claudexhub.fly.dev](https://claudexhub.fly.dev/)에서 확인할 수 있습니다.
 
 ## 소스에서 설치
 
@@ -93,7 +95,7 @@ npm run cli -- eval --k 5            # 검색 품질 자체 검색 평가(hit@k,
 npm run cli -- reindex
 ```
 
-## Claude Code에 등록
+## 로컬 개발: Claude Code에 등록
 
 이 저장소에는 프로젝트 범위의 `.mcp.json`이 포함되어 있습니다.
 

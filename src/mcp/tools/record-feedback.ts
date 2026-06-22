@@ -7,7 +7,7 @@ export const recordFeedbackSchema = {
     .enum(["success", "partial", "failed"])
     .describe("Did applying the card solve the problem?"),
   agent: z
-    .enum(["claude_code", "codex", "cursor", "other"])
+    .enum(["claude_code", "codex", "cursor", "antigravity", "other"])
     .default("claude_code")
     .describe("Which agent used the card"),
   tokens_before_estimate: z

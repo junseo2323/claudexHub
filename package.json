@@ -1,6 +1,6 @@
 {
   "name": "ai-agent-context-hub",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Agent-first developer knowledge platform — an MCP server + web app for searchable, reusable Context Cards",
   "type": "module",
   "license": "MIT",
@@ -9,6 +9,9 @@
     "model-context-protocol",
     "ai-agents",
     "claude",
+    "codex",
+    "cursor",
+    "antigravity",
     "knowledge-base",
     "developer-tools",
     "semantic-search"
