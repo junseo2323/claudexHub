@@ -26,7 +26,10 @@ export const draftContextCardSchema = {
 
 const inputObject = z.object(draftContextCardSchema);
 
-export function makeDraftContextCardHandler(repo: Repository) {
+export function makeDraftContextCardHandler(
+  repo: Repository,
+  assignAuthor?: (cardId: string) => void,
+) {
   return async (args: z.infer<typeof inputObject>) => {
     const problem = args.problem_summary ?? args.content ?? "";
     if (!problem) {
@@ -70,6 +73,7 @@ export function makeDraftContextCardHandler(repo: Repository) {
     // Redact card fields before storing anything.
     const { card: redactedInput, report: cardReport } = redactCard(rawInput);
     const created = await repo.createCard(redactedInput as CardInput);
+    assignAuthor?.(created.id);
 
     // Store the (redacted) raw evidence for provenance, and fold its findings
     // into the report so the human reviewer sees everything that was stripped.

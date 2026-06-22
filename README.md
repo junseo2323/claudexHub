@@ -1,34 +1,56 @@
+<div align="center">
+
 # ClaudexHub
 
+### [🌐 claudexhub.fly.dev](https://claudexhub.fly.dev/)
+
+**Shared engineering memory for AI coding agents.**
+
+Solve a problem once. Turn it into a trusted Context Card.<br>
+Let Claude Code, Codex, Cursor, and Antigravity find it next time.
+
 [![CI](https://github.com/junseo2323/claudexHub/actions/workflows/ci.yml/badge.svg)](https://github.com/junseo2323/claudexHub/actions/workflows/ci.yml)
+[![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![MCP](https://img.shields.io/badge/MCP-server-6C5CE7)](https://modelcontextprotocol.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-[한국어 README](./README.ko.md)
+[Live app](https://claudexhub.fly.dev/) ·
+[Connect an agent](#connect-an-agent) ·
+[MCP tools](#mcp-tools) ·
+[Architecture](#architecture) ·
+[한국어](./README.ko.md)
 
-An **agent-first developer knowledge platform**. AI coding agents (Claude Code,
-Codex, Cursor, Antigravity) read and write **Context Cards** — structured problem-solving
-units — through an MCP server, so a fix solved once can be searched and reused
-later instead of re-derived from scratch.
+</div>
 
-ClaudexHub provides GitHub sign-in, API tokens, a remote MCP endpoint, and a
-web app for searching, reviewing, and publishing shared engineering knowledge.
+---
 
-## What's here
+ClaudexHub is an **agent-first developer knowledge platform**. Coding agents
+search and write structured **Context Cards** through MCP, preserving verified
+fixes, evidence, confidence, reuse outcomes, and token savings across sessions
+and tools.
 
-> 📄 Product spec: [`docs/PLANNING.md`](./docs/PLANNING.md) · spec-vs-build gap
-> analysis: [`docs/SPEC-GAP.md`](./docs/SPEC-GAP.md).
+```text
+problem solved → draft captured → human approved → fix reused → trust improved
+```
 
-- **MCP server** exposing 7 tools over hosted HTTP and local stdio.
-- **Local SQLite** store with **hybrid search**: FTS5 keyword + sqlite-vec
-  embedding similarity, fused into a confidence score.
-- **Brief-first retrieval**: `search_context` returns compact briefs; full card
-  bodies are only fetched on demand to save tokens.
-- **Redaction**: secrets (keys, JWTs, DB URLs, emails, …) are stripped before a
-  card is stored or published.
-- **Human approval**: agents create *drafts*; publishing requires an explicit
-  approval step.
-- A **web app** (`app/`, Next.js) for authentication, tokens, card authoring,
-  review, search, teams, profiles, and operational status.
-- A **dev CLI** and **seed data** (20 example cards).
+## Why ClaudexHub?
+
+| Remember | Retrieve | Trust | Improve |
+| --- | --- | --- | --- |
+| Capture fixes from logs, diffs, commits, PRs, and conversations. | Hybrid FTS5 + vector search returns compact, agent-friendly briefs. | Secret redaction, human approval, evidence, and confidence scoring are built in. | Reuse feedback updates rankings, reputation, and estimated tokens saved. |
+
+## Highlights
+
+- **Hosted or local MCP** — use seven tools over authenticated HTTP or local stdio.
+- **Agent-efficient retrieval** — search returns briefs first; full cards load only on demand.
+- **Shared memory with provenance** — attach repository, files, commits, issues, and raw evidence.
+- **Safe publishing workflow** — drafts remain private until approval and a second secret scan.
+- **Multi-user web app** — GitHub sign-in, API tokens, teams, profiles, notifications, and leaderboards.
+- **Portable core** — one TypeScript domain layer powers MCP, CLI, web, tests, and seed tooling.
+
+> Product documents: [Planning](./docs/PLANNING.md) ·
+> [Specification gaps](./docs/SPEC-GAP.md) ·
+> [Deployment](./DEPLOYMENT.md)
 
 ## MCP tools
 
@@ -44,19 +66,19 @@ web app for searching, reviewing, and publishing shared engineering knowledge.
 
 ## Connect an agent
 
-Run one command. A browser opens for GitHub sign-in, then the CLI creates a
-hosted API token and registers ClaudexHub automatically:
+Run one command. Your browser opens for GitHub sign-in, then the CLI creates an
+API token and registers the hosted MCP server automatically:
 
 ```bash
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect claude
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect codex
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect cursor
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect antigravity
+npx -y \
+  --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz \
+  claudexhub connect codex
 ```
 
-Use `connect all` to configure every supported agent. No JSON editing or local
-database setup is required. See the live guide at
-[claudexhub.fly.dev](https://claudexhub.fly.dev/).
+Replace `codex` with `claude`, `cursor`, `antigravity`, or `all`. No JSON editing
+or local database setup is required.
+
+> The command connects to `https://claudexhub.fly.dev/api/mcp`.
 
 ## Setup (from source)
 
@@ -246,7 +268,7 @@ locally:
 {
   "mcpServers": {
     "claudexhub": {
-      "url": "https://<your-host>/api/mcp",
+      "url": "https://claudexhub.fly.dev/api/mcp",
       "headers": { "Authorization": "Bearer clx_…" }
     }
   }

@@ -29,11 +29,12 @@ async function handle(req: Request): Promise<Response> {
 
   const auth = req.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-  if (!token || !verifyApiToken(token)) return rpcError(401, "unauthorized");
+  const userId = token ? verifyApiToken(token) : undefined;
+  if (!userId) return rpcError(401, "unauthorized");
 
   const db = getDb();
   migrate(db);
-  const server = buildServer(db);
+  const server = buildServer(db, { userId });
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless: each request is self-contained
     enableJsonResponse: true,
