@@ -48,10 +48,10 @@ Run one command. A browser opens for GitHub sign-in, then the CLI creates a
 hosted API token and registers Context Hub automatically:
 
 ```bash
-npx -y ai-agent-context-hub connect claude
-npx -y ai-agent-context-hub connect codex
-npx -y ai-agent-context-hub connect cursor
-npx -y ai-agent-context-hub connect antigravity
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect claude
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect codex
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect cursor
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect antigravity
 ```
 
 Use `connect all` to configure every supported agent. No JSON editing or local
