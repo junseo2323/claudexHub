@@ -48,10 +48,10 @@ Run one command. A browser opens for GitHub sign-in, then the CLI creates a
 hosted API token and registers ClaudexHub automatically:
 
 ```bash
-npx -y claudexhub connect claude
-npx -y claudexhub connect codex
-npx -y claudexhub connect cursor
-npx -y claudexhub connect antigravity
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect claude
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect codex
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect cursor
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect antigravity
 ```
 
 Use `connect all` to configure every supported agent. No JSON editing or local
