@@ -48,10 +48,10 @@ ClaudexHub는 GitHub 로그인, API 토큰, 원격 MCP 엔드포인트와 함께
 호스팅 API 토큰을 만든 뒤 ClaudexHub를 자동 등록합니다.
 
 ```bash
-npx -y claudexhub connect claude
-npx -y claudexhub connect codex
-npx -y claudexhub connect cursor
-npx -y claudexhub connect antigravity
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect claude
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect codex
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect cursor
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect antigravity
 ```
 
 지원되는 에이전트를 모두 설정하려면 `connect all`을 사용하세요. JSON 편집이나

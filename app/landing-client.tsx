@@ -6,8 +6,10 @@ import { useEffect, useState } from "react";
 type Locale = "en" | "ko";
 type Agent = "claude" | "codex" | "cursor" | "antigravity";
 
+const releasePackage =
+  "https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz";
 const connectCommand = (agent: Agent) =>
-  `npx -y claudexhub connect ${agent}`;
+  `npx -y --package ${releasePackage} claudexhub connect ${agent}`;
 
 const connectCommands: Record<Agent, string> = {
   claude: connectCommand("claude"),
