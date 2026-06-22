@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getHealth } from "../../lib/hub";
+import { getHealth } from "../../lib/claudexhub";
 import { newRequestId, logEvent } from "../../../src/logger.js";
 
 export const runtime = "nodejs";

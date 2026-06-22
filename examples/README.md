@@ -1,16 +1,16 @@
 # Connect an agent
 
-Connect an agent directly to the hosted Context Hub. The command opens a
+Connect an agent directly to the hosted ClaudexHub. The command opens a
 browser for GitHub sign-in, creates an API token, and updates the selected
 agent's global MCP configuration.
 
 ## Quickstart
 
 ```bash
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect claude
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect codex
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect cursor
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.2.0/ai-agent-context-hub-0.2.0.tgz context-hub connect antigravity
+npx -y claudexhub connect claude
+npx -y claudexhub connect codex
+npx -y claudexhub connect cursor
+npx -y claudexhub connect antigravity
 ```
 
 Use `connect all` to configure every supported agent. Claude Code and Codex are

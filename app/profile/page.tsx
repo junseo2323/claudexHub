@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isAdmin } from "../lib/auth";
-import { getUserStats } from "../lib/hub";
+import { getUserStats } from "../lib/claudexhub";
 import { ProfileView } from "../components";
 
 export const dynamic = "force-dynamic";

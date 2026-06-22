@@ -1,4 +1,4 @@
-// Server-only data access for the web app. Reuses the exact same domain layer
+// ClaudexHub server-only data access. Reuses the exact same domain layer
 // (and SQLite database) as the MCP server and CLI — no duplicated logic.
 import { getDb } from "../../src/db/connection.js";
 import { migrate } from "../../src/db/migrate.js";

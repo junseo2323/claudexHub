@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, githubConfigured, devLoginEnabled, safeNext } from "../lib/auth";
-import { listDemoUsers } from "../lib/hub";
+import { listDemoUsers } from "../lib/claudexhub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

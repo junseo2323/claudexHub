@@ -2,7 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { buildServer } from "../../../src/mcp/server.js";
 import { getDb } from "../../../src/db/connection.js";
 import { migrate } from "../../../src/db/migrate.js";
-import { verifyApiToken } from "../../lib/hub";
+import { verifyApiToken } from "../../lib/claudexhub";
 import { rateLimitApi } from "../../lib/limits";
 
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ function rpcError(status: number, message: string): Response {
 
 /**
  * Hosted MCP endpoint (Streamable HTTP, stateless JSON mode). Lets a remote
- * agent use the same context-hub tools over HTTP instead of stdio. Authenticate
+ * agent use the same ClaudexHub tools over HTTP instead of stdio. Authenticate
  * with `Authorization: Bearer <token>` (created at /settings/tokens).
  *
  * Note: tool results currently surface published/approved cards and are not yet

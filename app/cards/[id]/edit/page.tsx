@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "../../../lib/auth";
-import { getEditableCardForUser } from "../../../lib/hub";
+import { getEditableCardForUser } from "../../../lib/claudexhub";
 import { editCardAction, deleteCardAction } from "../../../lib/actions";
 
 export const dynamic = "force-dynamic";

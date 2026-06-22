@@ -22,7 +22,7 @@ import {
   removeCardRelationForUser,
   saveSearchForUser,
   deleteSavedSearch,
-} from "./hub";
+} from "./claudexhub";
 
 function lines(value: FormDataEntryValue | null): string[] {
   return String(value ?? "")

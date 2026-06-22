@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { devLoginEnabled, makeSessionToken, publicOrigin, safeNext, sessionCookie } from "../../../lib/auth";
-import { getOrCreateDevUser } from "../../../lib/hub";
+import { getOrCreateDevUser } from "../../../lib/claudexhub";
 import { rateLimitAuth } from "../../../lib/limits";
 
 export const runtime = "nodejs";

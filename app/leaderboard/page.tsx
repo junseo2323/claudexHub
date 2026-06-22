@@ -1,4 +1,4 @@
-import { getLeaderboard } from "../lib/hub";
+import { getLeaderboard } from "../lib/claudexhub";
 import { LeaderboardRow } from "../components";
 
 export const dynamic = "force-dynamic";

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { search, listSavedSearches } from "../lib/hub";
+import { search, listSavedSearches } from "../lib/claudexhub";
 import { getCurrentUser } from "../lib/auth";
 import { saveSearchAction, deleteSavedSearchAction } from "../lib/actions";
 import { BriefRow } from "../components";
@@ -36,7 +36,7 @@ export default async function SearchPage({
   return (
     <>
       <h1>Search</h1>
-      <p className="subtle">Hybrid keyword + semantic search over the Context Hub.</p>
+      <p className="subtle">Hybrid keyword + semantic search over the ClaudexHub.</p>
 
       <form className="search-form" method="get">
         <input
@@ -84,7 +84,7 @@ export default async function SearchPage({
       </div>
 
       {q && results.length === 0 && <div className="empty">No matching cards.</div>}
-      {!q && <div className="empty">Enter a query to search the hub.</div>}
+      {!q && <div className="empty">Enter a query to search ClaudexHub.</div>}
 
       {saved.length > 0 && (
         <div className="section">

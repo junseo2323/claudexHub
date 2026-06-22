@@ -9,8 +9,9 @@ import os from "node:os";
 import path from "node:path";
 
 export const HOSTED_ORIGIN = "https://claudexhub.fly.dev";
-export const MCP_SERVER_NAME = "context-hub";
-export const CODEX_TOKEN_ENV = "CONTEXT_HUB_TOKEN";
+export const MCP_SERVER_NAME = "claudexhub";
+export const CODEX_TOKEN_ENV = "CLAUDEXHUB_TOKEN";
+const LEGACY_MCP_SERVER_NAME = "context-hub";
 
 export type AgentClient = "claude" | "codex" | "cursor" | "antigravity";
 
@@ -44,6 +45,7 @@ export function writeMcpJsonConfig(
     ...mcpServers,
     [MCP_SERVER_NAME]: server,
   };
+  delete (root.mcpServers as JsonObject)[LEGACY_MCP_SERVER_NAME];
 
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, `${JSON.stringify(root, null, 2)}\n`, { mode: 0o600 });

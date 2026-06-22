@@ -16,14 +16,14 @@ import {
 import { recordFeedbackSchema, makeRecordFeedbackHandler } from "./tools/record-feedback.js";
 import { markStaleSchema, makeMarkStaleHandler } from "./tools/mark-stale.js";
 
-/** Build an McpServer with the 7 context-hub tools registered against `db`. */
+/** Build an McpServer with the 7 ClaudexHub tools registered against `db`. */
 export function buildServer(db: DB): McpServer {
   const repo = new Repository(db);
   const search = new SearchService(db);
 
   const server = new McpServer(
     {
-      name: "context-hub",
+      name: "claudexhub",
       version: "0.1.0",
     },
     {
@@ -42,7 +42,7 @@ export function buildServer(db: DB): McpServer {
         "3. FEEDBACK: after applying a card to solve something, call record_feedback " +
         "(success/partial/failed) so its confidence and reuse stats stay accurate.\n" +
         "4. MAINTAIN: if a card's fix turns out outdated or wrong, call mark_stale.\n" +
-        "Skip the hub for trivial edits, pure formatting, or one-off questions with no reusable fix.",
+        "Skip ClaudexHub for trivial edits, pure formatting, or one-off questions with no reusable fix.",
     },
   );
 

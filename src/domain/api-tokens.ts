@@ -39,7 +39,7 @@ export class ApiTokenRepository {
 
   /** Create a token; the plaintext is returned ONCE and never stored. */
   create(userId: string, name: string): { token: ApiToken; plaintext: string } {
-    const plaintext = `cxh_${crypto.randomBytes(24).toString("hex")}`;
+    const plaintext = `clx_${crypto.randomBytes(24).toString("hex")}`;
     const token: ApiToken = {
       id: `tok_${nanoid(12)}`,
       userId,

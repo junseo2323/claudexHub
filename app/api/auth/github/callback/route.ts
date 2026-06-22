@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { makeSessionToken, publicOrigin, safeNext, sessionCookie } from "../../../../lib/auth";
-import { upsertGithubUser } from "../../../../lib/hub";
+import { upsertGithubUser } from "../../../../lib/claudexhub";
 
 export const runtime = "nodejs";
 
@@ -8,7 +8,9 @@ export async function GET(req: NextRequest) {
   const origin = publicOrigin(req);
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");
-  const saved = req.cookies.get("ctxhub_oauth_state")?.value;
+  const saved =
+    req.cookies.get("claudexhub_oauth_state")?.value ??
+    req.cookies.get("ctxhub_oauth_state")?.value;
 
   if (!code || !state || !saved || state !== saved) {
     return NextResponse.redirect(`${origin}/login?error=oauth_state`);
@@ -35,7 +37,7 @@ export async function GET(req: NextRequest) {
     headers: {
       Authorization: `Bearer ${token.access_token}`,
       Accept: "application/vnd.github+json",
-      "User-Agent": "ai-agent-context-hub",
+      "User-Agent": "claudexhub",
     },
   });
   const gh = (await userRes.json()) as {
@@ -52,9 +54,14 @@ export async function GET(req: NextRequest) {
     avatarUrl: gh.avatar_url ?? undefined,
   });
 
-  const next = safeNext(req.cookies.get("ctxhub_oauth_next")?.value);
+  const next = safeNext(
+    req.cookies.get("claudexhub_oauth_next")?.value ??
+      req.cookies.get("ctxhub_oauth_next")?.value,
+  );
   const res = NextResponse.redirect(`${origin}${next ?? "/profile"}`);
   res.cookies.set(sessionCookie.name, makeSessionToken(user.id), sessionCookie.options);
+  res.cookies.delete("claudexhub_oauth_state");
+  res.cookies.delete("claudexhub_oauth_next");
   res.cookies.delete("ctxhub_oauth_state");
   res.cookies.delete("ctxhub_oauth_next");
   return res;

@@ -4,7 +4,8 @@ import { getDb } from "../../src/db/connection.js";
 import { migrate } from "../../src/db/migrate.js";
 import { UserRepository, type User } from "../../src/domain/users.js";
 
-const COOKIE = "ctxhub_session";
+const COOKIE = "claudexhub_session";
+const LEGACY_COOKIE = "ctxhub_session";
 const SECRET = process.env.AUTH_SECRET ?? "dev-insecure-secret-change-me";
 const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
@@ -86,7 +87,7 @@ export const sessionCookie = {
 
 export async function getCurrentUser(): Promise<User | null> {
   const store = await cookies();
-  const token = store.get(COOKIE)?.value;
+  const token = store.get(COOKIE)?.value ?? store.get(LEGACY_COOKIE)?.value;
   if (!token) return null;
   const userId = verify(token);
   if (!userId) return null;

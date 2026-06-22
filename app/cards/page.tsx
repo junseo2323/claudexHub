@@ -1,4 +1,4 @@
-import { listViewableCards, getStats } from "../lib/hub";
+import { listViewableCards, getStats } from "../lib/claudexhub";
 import { getCurrentUser } from "../lib/auth";
 import { CardRow } from "../components";
 

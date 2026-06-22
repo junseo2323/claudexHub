@@ -83,8 +83,8 @@ Remaining:
 
 ## Phase 10 — packaging & DX
 
-Done: publish-ready package (MIT, metadata, `files`, `context-hub` +
-`context-hub-cli` bins, shebangs, `prepublishOnly`), one-command `init`
+Done: publish-ready package (MIT, metadata, `files`, `claudexhub` +
+`claudexhub-cli` bins, shebangs, `prepublishOnly`), one-command `init`
 (schema + seed), example Claude Code / Cursor MCP configs, and an npx quickstart.
 
 Remaining:

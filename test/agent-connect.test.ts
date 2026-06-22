@@ -15,7 +15,7 @@ import {
 } from "../src/cli/agent-connect.js";
 
 function tempHome(): string {
-  return mkdtempSync(path.join(os.tmpdir(), "context-hub-connect-"));
+  return mkdtempSync(path.join(os.tmpdir(), "claudexhub-connect-"));
 }
 
 describe("agent connection config", () => {
@@ -25,16 +25,22 @@ describe("agent connection config", () => {
     mkdirSync(dir, { recursive: true });
     writeFileSync(
       path.join(dir, "mcp.json"),
-      JSON.stringify({ mcpServers: { existing: { url: "https://example.test/mcp" } } }),
+      JSON.stringify({
+        mcpServers: {
+          existing: { url: "https://example.test/mcp" },
+          "context-hub": { url: "https://legacy.test/mcp" },
+        },
+      }),
     );
 
-    const file = registerCursorConfig("https://hub.test/api/mcp", "cxh_test", home);
+    const file = registerCursorConfig("https://hub.test/api/mcp", "clx_test", home);
     const config = JSON.parse(readFileSync(file, "utf8"));
 
     expect(config.mcpServers.existing.url).toBe("https://example.test/mcp");
-    expect(config.mcpServers["context-hub"]).toEqual({
+    expect(config.mcpServers["context-hub"]).toBeUndefined();
+    expect(config.mcpServers.claudexhub).toEqual({
       url: "https://hub.test/api/mcp",
-      headers: { Authorization: "Bearer cxh_test" },
+      headers: { Authorization: "Bearer clx_test" },
     });
     if (process.platform !== "win32") {
       expect(statSync(file).mode & 0o777).toBe(0o600);
@@ -45,14 +51,14 @@ describe("agent connection config", () => {
     const home = tempHome();
     const file = registerAntigravityConfig(
       "https://hub.test/api/mcp",
-      "cxh_test",
+      "clx_test",
       home,
     );
     const config = JSON.parse(readFileSync(file, "utf8"));
 
-    expect(config.mcpServers["context-hub"]).toEqual({
+    expect(config.mcpServers.claudexhub).toEqual({
       serverUrl: "https://hub.test/api/mcp",
-      headers: { Authorization: "Bearer cxh_test" },
+      headers: { Authorization: "Bearer clx_test" },
     });
   });
 

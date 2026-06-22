@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "../lib/auth";
-import { listTeamsForUser } from "../lib/hub";
+import { listTeamsForUser } from "../lib/claudexhub";
 import { createTeamAction } from "../lib/actions";
 
 export const dynamic = "force-dynamic";

@@ -15,7 +15,7 @@ COPY . .
 RUN npm run web:build
 
 ENV NODE_ENV=production
-ENV HUB_DB_PATH=/data/hub.db
+ENV CLAUDEXHUB_DB_PATH=/data/hub.db
 # Persist the SQLite store + model cache across restarts.
 VOLUME ["/data"]
 EXPOSE 3000

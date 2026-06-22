@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, isAdmin } from "../lib/auth";
-import { getHealth, getStats, getRateLimitCount } from "../lib/hub";
+import { getHealth, getStats, getRateLimitCount } from "../lib/claudexhub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,7 +48,7 @@ export default async function StatusPage() {
         )}
       </div>
 
-      <h2>Hub</h2>
+      <h2>ClaudexHub</h2>
       <div className="panel">
         <table>
           <tbody>

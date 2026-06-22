@@ -41,9 +41,9 @@ function repo(): Repository {
 
 const program = new Command();
 program
-  .name("context-hub")
-  .description("CLI for the AI Agent Context Hub")
-  .version("0.2.0");
+  .name("claudexhub")
+  .description("CLI for ClaudexHub")
+  .version("0.3.0");
 
 program
   .command("init")
@@ -274,7 +274,7 @@ program
 
 program
   .command("stats")
-  .description("Show hub trust + reuse statistics")
+  .description("Show ClaudexHub trust + reuse statistics")
   .option("--json", "Output raw JSON")
   .action((opts: { json?: boolean }) => {
     const db = getDb();
@@ -285,7 +285,7 @@ program
       return;
     }
     const pct = (n: number) => `${Math.round(n * 100)}%`;
-    console.log("=== AI Agent Context Hub — Stats ===");
+    console.log("=== ClaudexHub — Stats ===");
     console.log(`Cards: ${s.cardsTotal} total · ${s.cardsPublished} published · ${s.cardsDraft} draft · ${s.cardsStale} stale`);
     console.log(`Verified fixes: ${s.verifiedFixCount}`);
     console.log(`Reuse: ${s.successfulReuseCount} ok / ${s.failedReuseCount} failed (${pct(s.reuseSuccessRate)} success)`);
@@ -339,7 +339,7 @@ program
 
 /** Where the CLI persists tokens, keyed by hub origin. */
 function credentialsPath(): string {
-  return path.join(os.homedir(), ".context-hub", "credentials.json");
+  return path.join(os.homedir(), ".claudexhub", "credentials.json");
 }
 
 function saveCredential(origin: string, data: { token: string; login?: string }): string {
@@ -384,6 +384,7 @@ function run(cmd: string, args: string[]): { ok: boolean; err: string } {
 
 /** Register the hosted MCP endpoint with Claude Code (token inline in a header). */
 function registerClaude(mcpUrl: string, token: string): boolean {
+  run("claude", ["mcp", "remove", "-s", "user", "context-hub"]);
   run("claude", ["mcp", "remove", "-s", "user", MCP_SERVER_NAME]); // ignore if absent
   const { ok, err } = run("claude", [
     "mcp", "add", "-s", "user", "-t", "http", MCP_SERVER_NAME, mcpUrl,
@@ -399,6 +400,7 @@ function registerClaude(mcpUrl: string, token: string): boolean {
  * accept a literal token), so we also persist that env var to the user's shell rc.
  */
 function registerCodex(mcpUrl: string, token: string): boolean {
+  run("codex", ["mcp", "remove", "context-hub"]);
   run("codex", ["mcp", "remove", MCP_SERVER_NAME]); // ignore if absent
   const { ok, err } = run("codex", [
     "mcp", "add", MCP_SERVER_NAME, "--url", mcpUrl,
@@ -504,7 +506,7 @@ async function connectAgent(opts: ConnectOptions): Promise<void> {
         res.end("<p>Invalid login response. You can close this window.</p>");
         return;
       }
-      res.end("<p>✅ Logged in to Context Hub. You can close this window.</p>");
+      res.end("<p>✅ Logged in to ClaudexHub. You can close this window.</p>");
       server.close();
       resolve({ token: tok, login: url.searchParams.get("login") ?? undefined });
     });
@@ -550,7 +552,7 @@ async function connectAgent(opts: ConnectOptions): Promise<void> {
 
   if (!registered) {
     console.log("\nNo agent was registered. Re-run with a client name, for example:");
-    console.log("  context-hub connect codex");
+    console.log("  claudexhub connect codex");
     console.log(
       JSON.stringify(
         {
@@ -570,7 +572,11 @@ async function connectAgent(opts: ConnectOptions): Promise<void> {
 
 function addConnectOptions(command: Command): Command {
   return command
-    .option("--host <url>", "Hub base URL", process.env.HUB_URL || HOSTED_ORIGIN)
+    .option(
+      "--host <url>",
+      "ClaudexHub base URL",
+      process.env.CLAUDEXHUB_URL || process.env.HUB_URL || HOSTED_ORIGIN,
+    )
     .option("--name <name>", "Token name", `cli@${os.hostname()}`)
     .option("--no-open", "Print the URL instead of opening a browser")
     .option("--print", "Print the token only; don't save or register");
@@ -580,7 +586,7 @@ addConnectOptions(
   program
     .command("connect [client]")
     .description(
-      "Sign in and connect Claude, Codex, Cursor, or Antigravity to the hosted Hub",
+      "Sign in and connect Claude, Codex, Cursor, or Antigravity to ClaudexHub",
     ),
 ).action(async (client: string | undefined, opts: ConnectOptions) => {
   await connectAgent({ ...opts, client: client ?? "auto" });

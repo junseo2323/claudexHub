@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getUserByLogin, getUserStats } from "../../lib/hub";
+import { getUserByLogin, getUserStats } from "../../lib/claudexhub";
 import { ProfileView } from "../../components";
 
 export const dynamic = "force-dynamic";
