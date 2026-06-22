@@ -15,11 +15,14 @@ import {
 } from "./tools/submit-for-approval.js";
 import { recordFeedbackSchema, makeRecordFeedbackHandler } from "./tools/record-feedback.js";
 import { markStaleSchema, makeMarkStaleHandler } from "./tools/mark-stale.js";
+import { UserRepository } from "../domain/users.js";
 
 /** Build an McpServer with the 7 ClaudexHub tools registered against `db`. */
-export function buildServer(db: DB): McpServer {
+export function buildServer(db: DB, context: { userId?: string } = {}): McpServer {
   const repo = new Repository(db);
   const search = new SearchService(db);
+  const authorUserId = context.userId;
+  const users = authorUserId ? new UserRepository(db) : undefined;
 
   const server = new McpServer(
     {
@@ -79,7 +82,12 @@ export function buildServer(db: DB): McpServer {
         "via publish_context_card before it becomes searchable.",
       inputSchema: draftContextCardSchema,
     },
-    makeDraftContextCardHandler(repo),
+    makeDraftContextCardHandler(
+      repo,
+      authorUserId && users
+        ? (cardId) => users.setCardAuthor(cardId, authorUserId)
+        : undefined,
+    ),
   );
 
   server.registerTool(

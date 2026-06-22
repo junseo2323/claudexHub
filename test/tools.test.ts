@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import type { DB } from "../src/db/connection.js";
 import { Repository } from "../src/domain/repository.js";
+import { UserRepository } from "../src/domain/users.js";
 import { makeDraftContextCardHandler } from "../src/mcp/tools/draft-context-card.js";
 import { makePublishContextCardHandler } from "../src/mcp/tools/publish-context-card.js";
 import { makeGetContextCardHandler } from "../src/mcp/tools/get-context-card.js";
@@ -65,6 +66,26 @@ describe("MCP tool handlers", () => {
       | undefined;
     expect(ev?.url).toBe("https://github.com/junseo2323/claudexHub/commit/a1b2c3d4e5");
     expect(ev?.commit_sha).toBe("a1b2c3d4e5");
+  });
+
+  it("draft_context_card attributes hosted MCP drafts to the token owner", async () => {
+    db = freshDb();
+    const repo = new Repository(db);
+    const users = new UserRepository(db);
+    const alice = users.getOrCreateLocal("alice");
+    const draft = makeDraftContextCardHandler(
+      repo,
+      (cardId) => users.setCardAuthor(cardId, alice.id),
+    );
+
+    const res = await draft({
+      source: "conversation",
+      problem_summary: "Leaderboard omitted MCP-created cards",
+      verified_fix: ["attribute the draft to the bearer token owner"],
+    });
+    const out = parse(res);
+
+    expect(users.getCardAuthorId(out.id)).toBe(alice.id);
   });
 
   it("publish blocks when secrets remain in the card", async () => {
