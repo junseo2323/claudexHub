@@ -10,7 +10,12 @@ export type EvidenceSource =
   | "issue"
   | "test"
   | "official_doc";
-export type AgentName = "claude_code" | "codex" | "cursor" | "other";
+export type AgentName =
+  | "claude_code"
+  | "codex"
+  | "cursor"
+  | "antigravity"
+  | "other";
 export type UsageOutcome = "success" | "partial" | "failed";
 
 export interface AgentUsage {

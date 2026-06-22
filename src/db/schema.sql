@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_evidence_card ON source_evidence(card_id);
 CREATE TABLE IF NOT EXISTS agent_usage (
   id TEXT PRIMARY KEY,
   card_id TEXT NOT NULL REFERENCES context_cards(id) ON DELETE CASCADE,
-  agent TEXT NOT NULL,        -- claude_code | codex | cursor | other
+  agent TEXT NOT NULL,        -- claude_code | codex | cursor | antigravity | other
   outcome TEXT NOT NULL,      -- success | partial | failed
   tokens_before_estimate INTEGER,
   tokens_after_actual INTEGER,

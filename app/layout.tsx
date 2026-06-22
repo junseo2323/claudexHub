@@ -7,7 +7,8 @@ import { Avatar } from "./components";
 
 export const metadata = {
   title: "Context Hub — Shared memory for AI coding agents",
-  description: "An MCP-based context hub where Claude Code and Cursor search, reuse, and improve verified engineering solutions.",
+  description:
+    "A hosted MCP context hub where Claude Code, Codex, Cursor, and Antigravity search, reuse, and improve verified engineering solutions.",
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

@@ -1,4 +1,10 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import {
+  chmodSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+} from "node:fs";
 import http from "node:http";
 import crypto from "node:crypto";
 import os from "node:os";
@@ -17,6 +23,15 @@ import { config } from "../config.js";
 import { extractDraft } from "../domain/extraction.js";
 import { redact, redactCard, mergeReports, reportFromFindings } from "../domain/redaction.js";
 import type { CardInput } from "../domain/card-schema.js";
+import {
+  CODEX_TOKEN_ENV,
+  HOSTED_ORIGIN,
+  MCP_SERVER_NAME,
+  parseClientSelection,
+  registerAntigravityConfig,
+  registerCursorConfig,
+  type AgentClient,
+} from "./agent-connect.js";
 
 function repo(): Repository {
   const db = getDb();
@@ -25,7 +40,10 @@ function repo(): Repository {
 }
 
 const program = new Command();
-program.name("context-hub").description("Dev CLI for the AI Agent Context Hub").version("0.1.0");
+program
+  .name("context-hub")
+  .description("CLI for the AI Agent Context Hub")
+  .version("0.2.0");
 
 program
   .command("init")
@@ -210,7 +228,11 @@ program
   .command("feedback <id>")
   .description("Record agent reuse feedback for a card")
   .requiredOption("--outcome <outcome>", "success|partial|failed")
-  .option("--agent <agent>", "claude_code|codex|cursor|other", "claude_code")
+  .option(
+    "--agent <agent>",
+    "claude_code|codex|cursor|antigravity|other",
+    "claude_code",
+  )
   .option("--before <n>", "Estimated tokens without the card")
   .option("--after <n>", "Actual tokens used")
   .action(
@@ -219,7 +241,12 @@ program
       opts: { outcome: "success" | "partial" | "failed"; agent: string; before?: string; after?: string },
     ) => {
       const { card, usage } = await repo().recordUsage(id, {
-        agent: opts.agent as "claude_code" | "codex" | "cursor" | "other",
+        agent: opts.agent as
+          | "claude_code"
+          | "codex"
+          | "cursor"
+          | "antigravity"
+          | "other",
         outcome: opts.outcome,
         tokensBeforeEstimate: opts.before ? Number(opts.before) : undefined,
         tokensAfterActual: opts.after ? Number(opts.after) : undefined,
@@ -328,6 +355,7 @@ function saveCredential(origin: string, data: { token: string; login?: string })
   }
   store[origin] = { ...data, createdAt: new Date().toISOString() };
   writeFileSync(file, JSON.stringify(store, null, 2) + "\n", { mode: 0o600 });
+  chmodSync(file, 0o600);
   return file;
 }
 
@@ -342,9 +370,6 @@ function openBrowser(url: string): void {
     /* fall back to the printed URL */
   }
 }
-
-const MCP_SERVER_NAME = "context-hub";
-const CODEX_TOKEN_ENV = "CONTEXT_HUB_TOKEN";
 
 /** True if a command resolves on PATH (no ENOENT when invoked). */
 function commandExists(cmd: string): boolean {
@@ -390,6 +415,28 @@ function registerCodex(mcpUrl: string, token: string): boolean {
   return true;
 }
 
+function registerCursor(mcpUrl: string, token: string): boolean {
+  try {
+    const file = registerCursorConfig(mcpUrl, token);
+    console.log(`✅ Registered with Cursor in ${file}.`);
+    return true;
+  } catch (error) {
+    console.error(`⚠️  Cursor registration failed: ${String(error)}`);
+    return false;
+  }
+}
+
+function registerAntigravity(mcpUrl: string, token: string): boolean {
+  try {
+    const file = registerAntigravityConfig(mcpUrl, token);
+    console.log(`✅ Registered with Antigravity in ${file}.`);
+    return true;
+  } catch (error) {
+    console.error(`⚠️  Antigravity registration failed: ${String(error)}`);
+    return false;
+  }
+}
+
 /** Idempotently persist `export NAME=value` to the user's shell rc file. */
 function persistShellEnv(name: string, value: string): string | null {
   const shell = process.env.SHELL ?? "";
@@ -412,97 +459,144 @@ function persistShellEnv(name: string, value: string): string | null {
   return file;
 }
 
-program
-  .command("login")
-  .description("Obtain an API token via the browser and register the MCP server")
-  .option("--host <url>", "Hub base URL", process.env.HUB_URL || "http://localhost:3000")
-  .option("--name <name>", "Token name", `cli@${os.hostname()}`)
-  .option("--client <client>", "Register with: claude | codex | both | none (default: auto-detect)")
-  .option("--no-open", "Print the URL instead of opening a browser")
-  .option("--print", "Print the token only; don't save or register")
-  .action(
-    async (opts: {
-      host: string;
-      name: string;
-      client?: string;
-      open: boolean;
-      print?: boolean;
-    }) => {
-    const origin = opts.host.replace(/\/+$/, "");
-    const state = crypto.randomBytes(16).toString("hex");
+interface ConnectOptions {
+  host: string;
+  name: string;
+  client?: string;
+  open: boolean;
+  print?: boolean;
+}
 
-    const token = await new Promise<{ token: string; login?: string }>((resolve, reject) => {
-      const server = http.createServer((req, res) => {
-        const url = new URL(req.url ?? "/", "http://127.0.0.1");
-        const got = url.searchParams.get("state");
-        const tok = url.searchParams.get("token");
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        if (got !== state || !tok) {
-          res.statusCode = 400;
-          res.end("<p>Invalid login response. You can close this window.</p>");
-          return;
-        }
-        res.end("<p>✅ Logged in to Context Hub. You can close this window.</p>");
-        server.close();
-        resolve({ token: tok, login: url.searchParams.get("login") ?? undefined });
-      });
-      server.on("error", reject);
-      server.listen(0, "127.0.0.1", () => {
-        const addr = server.address();
-        const port = typeof addr === "object" && addr ? addr.port : 0;
-        const loginUrl =
-          `${origin}/settings/tokens/cli?port=${port}` +
-          `&state=${state}&name=${encodeURIComponent(opts.name)}`;
-        console.log(`Opening ${loginUrl}`);
-        console.log("If your browser didn't open, visit the URL above to authorize.");
-        if (opts.open) openBrowser(loginUrl);
-      });
-      setTimeout(() => {
-        server.close();
-        reject(new Error("Timed out waiting for browser login (5 min)."));
-      }, 5 * 60_000).unref();
-    });
+function detectedClients(): AgentClient[] {
+  const clients: AgentClient[] = [];
+  if (commandExists("claude")) clients.push("claude");
+  if (commandExists("codex")) clients.push("codex");
+  if (
+    commandExists("cursor") ||
+    commandExists("cursor-agent") ||
+    existsSync(path.join(os.homedir(), ".cursor"))
+  ) {
+    clients.push("cursor");
+  }
+  if (
+    commandExists("agy") ||
+    existsSync(path.join(os.homedir(), ".gemini", "config"))
+  ) {
+    clients.push("antigravity");
+  }
+  return clients;
+}
 
-      if (opts.print) {
-        console.log(token.token);
+async function connectAgent(opts: ConnectOptions): Promise<void> {
+  const origin = opts.host.replace(/\/+$/, "");
+  const want = (opts.client ?? "auto").toLowerCase();
+  const clients = want === "auto" ? detectedClients() : parseClientSelection(want);
+  const state = crypto.randomBytes(16).toString("hex");
+
+  const token = await new Promise<{ token: string; login?: string }>((resolve, reject) => {
+    const server = http.createServer((req, res) => {
+      const url = new URL(req.url ?? "/", "http://127.0.0.1");
+      const got = url.searchParams.get("state");
+      const tok = url.searchParams.get("token");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      if (got !== state || !tok) {
+        res.statusCode = 400;
+        res.end("<p>Invalid login response. You can close this window.</p>");
         return;
       }
+      res.end("<p>✅ Logged in to Context Hub. You can close this window.</p>");
+      server.close();
+      resolve({ token: tok, login: url.searchParams.get("login") ?? undefined });
+    });
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      const port = typeof addr === "object" && addr ? addr.port : 0;
+      const loginUrl =
+        `${origin}/settings/tokens/cli?port=${port}` +
+        `&state=${state}&name=${encodeURIComponent(opts.name)}`;
+      console.log(`Opening ${loginUrl}`);
+      console.log("If your browser didn't open, visit the URL above to authorize.");
+      if (opts.open) openBrowser(loginUrl);
+    });
+    setTimeout(() => {
+      server.close();
+      reject(new Error("Timed out waiting for browser login (5 min)."));
+    }, 5 * 60_000).unref();
+  });
 
-      const file = saveCredential(origin, token);
-      console.log(`\n✅ Token saved to ${file}${token.login ? ` (as ${token.login})` : ""}`);
+  if (opts.print) {
+    console.log(token.token);
+    return;
+  }
 
-      const mcpUrl = `${origin}/api/mcp`;
-      const want = (opts.client ?? "auto").toLowerCase();
-      const doClaude =
-        want === "claude" || want === "both" || (want === "auto" && commandExists("claude"));
-      const doCodex =
-        want === "codex" || want === "both" || (want === "auto" && commandExists("codex"));
+  const file = saveCredential(origin, token);
+  console.log(`\n✅ Token saved to ${file}${token.login ? ` (as ${token.login})` : ""}`);
 
-      let registered = false;
-      if (want !== "none") {
-        if (doClaude) registered = registerClaude(mcpUrl, token.token) || registered;
-        if (doCodex) registered = registerCodex(mcpUrl, token.token) || registered;
-      }
+  const mcpUrl = `${origin}/api/mcp`;
 
-      if (!registered) {
-        console.log("\nNo agent CLI registered. Add this MCP server manually:");
-        console.log(
-          JSON.stringify(
-            {
-              mcpServers: {
-                [MCP_SERVER_NAME]: {
-                  url: mcpUrl,
-                  headers: { Authorization: `Bearer ${token.token}` },
-                },
-              },
+  let registered = false;
+  for (const client of clients) {
+    if (client === "claude") {
+      registered = registerClaude(mcpUrl, token.token) || registered;
+    } else if (client === "codex") {
+      registered = registerCodex(mcpUrl, token.token) || registered;
+    } else if (client === "cursor") {
+      registered = registerCursor(mcpUrl, token.token) || registered;
+    } else if (client === "antigravity") {
+      registered = registerAntigravity(mcpUrl, token.token) || registered;
+    }
+  }
+
+  if (!registered) {
+    console.log("\nNo agent was registered. Re-run with a client name, for example:");
+    console.log("  context-hub connect codex");
+    console.log(
+      JSON.stringify(
+        {
+          mcpServers: {
+            [MCP_SERVER_NAME]: {
+              url: mcpUrl,
+              headers: { Authorization: `Bearer ${token.token}` },
             },
-            null,
-            2,
-          ),
-        );
-      }
-    },
-  );
+          },
+        },
+        null,
+        2,
+      ),
+    );
+  }
+}
+
+function addConnectOptions(command: Command): Command {
+  return command
+    .option("--host <url>", "Hub base URL", process.env.HUB_URL || HOSTED_ORIGIN)
+    .option("--name <name>", "Token name", `cli@${os.hostname()}`)
+    .option("--no-open", "Print the URL instead of opening a browser")
+    .option("--print", "Print the token only; don't save or register");
+}
+
+addConnectOptions(
+  program
+    .command("connect [client]")
+    .description(
+      "Sign in and connect Claude, Codex, Cursor, or Antigravity to the hosted Hub",
+    ),
+).action(async (client: string | undefined, opts: ConnectOptions) => {
+  await connectAgent({ ...opts, client: client ?? "auto" });
+});
+
+addConnectOptions(
+  program
+    .command("login")
+    .description("Legacy alias for connect")
+    .option(
+      "--client <client>",
+      "claude | codex | cursor | antigravity | all | none (default: auto)",
+    ),
+).action(async (opts: ConnectOptions) => {
+  await connectAgent(opts);
+});
 
 program.parseAsync().catch((err) => {
   console.error(err);

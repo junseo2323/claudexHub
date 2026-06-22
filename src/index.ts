@@ -5,6 +5,14 @@ import { buildServer } from "./mcp/server.js";
 import { config, logStderr } from "./config.js";
 
 async function main(): Promise<void> {
+  // The package's default binary doubles as the hosted setup CLI when a
+  // subcommand is present. With no arguments it remains the stdio MCP server,
+  // preserving compatibility for existing local integrations.
+  if (process.argv.length > 2) {
+    await import("./cli/index.js");
+    return;
+  }
+
   const db = getDb();
   migrate(db); // idempotent — ensure schema exists
   const server = buildServer(db);

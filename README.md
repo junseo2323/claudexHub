@@ -1,24 +1,23 @@
-# AI Agent Context Hub — Phase 1 (Local MCP Prototype)
+# AI Agent Context Hub
 
 [![CI](https://github.com/junseo2323/claudexhub/actions/workflows/ci.yml/badge.svg)](https://github.com/junseo2323/claudexhub/actions/workflows/ci.yml)
 
 [한국어 README](./README.ko.md)
 
 An **agent-first developer knowledge platform**. AI coding agents (Claude Code,
-Codex, Cursor) read and write **Context Cards** — structured problem-solving
+Codex, Cursor, Antigravity) read and write **Context Cards** — structured problem-solving
 units — through an MCP server, so a fix solved once can be searched and reused
 later instead of re-derived from scratch.
 
-This repository is **Phase 1**: a local-first prototype centered on a stdio MCP
-server you can plug into Claude Code, plus a read-only **web view** over the same
-data. No OAuth or hosted endpoint yet — everything runs against a local SQLite store.
+The hosted Hub provides GitHub sign-in, API tokens, a remote MCP endpoint, and a
+web app for searching, reviewing, and publishing shared engineering knowledge.
 
 ## What's here
 
 > 📄 Product spec: [`docs/PLANNING.md`](./docs/PLANNING.md) · spec-vs-build gap
 > analysis: [`docs/SPEC-GAP.md`](./docs/SPEC-GAP.md).
 
-- **MCP server** (`src/index.ts`) exposing 7 tools over stdio.
+- **MCP server** exposing 7 tools over hosted HTTP and local stdio.
 - **Local SQLite** store with **hybrid search**: FTS5 keyword + sqlite-vec
   embedding similarity, fused into a confidence score.
 - **Brief-first retrieval**: `search_context` returns compact briefs; full card
@@ -27,8 +26,8 @@ data. No OAuth or hosted endpoint yet — everything runs against a local SQLite
   card is stored or published.
 - **Human approval**: agents create *drafts*; publishing requires an explicit
   approval step.
-- A **read-only web app** (`app/`, Next.js) — dashboard, leaderboard/stats, card
-  browse, detail, and search — reusing the exact same domain layer.
+- A **web app** (`app/`, Next.js) for authentication, tokens, card authoring,
+  review, search, teams, profiles, and operational status.
 - A **dev CLI** and **seed data** (20 example cards).
 
 ## MCP tools
@@ -43,18 +42,21 @@ data. No OAuth or hosted endpoint yet — everything runs against a local SQLite
 | `record_feedback` | Record reuse outcome (success/partial/failed); updates reuse counts, accumulated tokens saved, and confidence. |
 | `mark_stale` | Mark a card stale when its fix is outdated/wrong; stale cards drop out of search. |
 
-## Quickstart
+## Connect an agent
 
-Run the published MCP server with `npx` — one command sets up the local DB
-(schema + seed cards), then point your agent at it:
+Run one command. A browser opens for GitHub sign-in, then the CLI creates a
+hosted API token and registers Context Hub automatically:
 
 ```bash
-npx -y ai-agent-context-hub context-hub-cli init   # schema + 20 seed cards
+npx -y ai-agent-context-hub connect claude
+npx -y ai-agent-context-hub connect codex
+npx -y ai-agent-context-hub connect cursor
+npx -y ai-agent-context-hub connect antigravity
 ```
 
-Ready-to-copy agent configs are in [`examples/`](./examples) (Claude Code, Cursor).
-The package ships two bins: `context-hub` (the MCP server, the default) and
-`context-hub-cli` (the dev/admin CLI).
+Use `connect all` to configure every supported agent. No JSON editing or local
+database setup is required. See the live guide at
+[claudexhub.fly.dev](https://claudexhub.fly.dev/).
 
 ## Setup (from source)
 
@@ -92,7 +94,7 @@ npm run cli -- eval --k 5            # search-quality self-retrieval eval (hit@k
 npm run cli -- reindex
 ```
 
-## Register in Claude Code
+## Local development: register in Claude Code
 
 This repo ships a project-scoped `.mcp.json`:
 

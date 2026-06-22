@@ -4,46 +4,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type Locale = "en" | "ko";
-type Agent = "claude" | "cursor";
-type Connection = "local" | "hosted";
+type Agent = "claude" | "codex" | "cursor" | "antigravity";
 
-const localConfigs = {
-  claude: `{
-  "mcpServers": {
-    "context-hub": {
-      "command": "npx",
-      "args": ["-y", "ai-agent-context-hub"],
-      "env": {
-        "EMBEDDING_PROVIDER": "local",
-        "HUB_DB_PATH": "./data/hub.db"
-      }
-    }
-  }
-}`,
-  cursor: `{
-  "mcpServers": {
-    "context-hub": {
-      "command": "npx",
-      "args": ["-y", "ai-agent-context-hub"],
-      "env": {
-        "EMBEDDING_PROVIDER": "local",
-        "HUB_DB_PATH": "./data/hub.db"
-      }
-    }
-  }
-}`,
+const connectCommands: Record<Agent, string> = {
+  claude: "npx -y ai-agent-context-hub connect claude",
+  codex: "npx -y ai-agent-context-hub connect codex",
+  cursor: "npx -y ai-agent-context-hub connect cursor",
+  antigravity: "npx -y ai-agent-context-hub connect antigravity",
 };
-
-const hostedConfig = `{
-  "mcpServers": {
-    "context-hub": {
-      "url": "https://claudexhub.fly.dev/api/mcp",
-      "headers": {
-        "Authorization": "Bearer cxh_YOUR_TOKEN"
-      }
-    }
-  }
-}`;
 
 const copy = {
   en: {
@@ -52,10 +20,10 @@ const copy = {
       eyebrow: "Shared memory for AI coding agents",
       titleA: "Stop solving the same",
       titleB: "engineering problem twice.",
-      body: "Context Hub lets Claude Code, Cursor, and other MCP clients search your team's proven fixes, apply only the relevant context, and save new solutions for the next agent.",
+      body: "Context Hub lets Claude Code, Codex, Cursor, and Antigravity search your team's proven fixes, apply only the relevant context, and save new solutions for the next agent.",
       start: "Start in 3 minutes",
       github: "View on GitHub",
-      proof: ["Local-first", "Automatic secret redaction", "Human-approved publishing"],
+      proof: ["Hosted MCP", "Automatic secret redaction", "Human-approved publishing"],
       prompt: "OAuth cookies are missing only in production",
       searching: "Searching verified solutions...",
       result: "Check trust proxy and secure cookie settings together behind a reverse proxy.",
@@ -66,29 +34,24 @@ const copy = {
     metrics: ["MCP tools", "secret scan", "keyword + semantic", "live context cards"],
     quick: {
       kicker: "QUICKSTART",
-      title: "Choose local or hosted. Connect once.",
-      body: "Run a private hub on your machine, or connect directly to the hosted MCP endpoint with an API token.",
-      local: "Local",
-      hosted: "Hosted",
-      localDesc: "Best for personal use and private repositories. Data stays in a local SQLite database.",
-      hostedDesc: "Best for using the deployed Hub across machines. Requires a Context Hub API token.",
+      title: "One command connects your agent.",
+      body: "Sign in through the browser once. The CLI creates a hosted API token and registers Context Hub in your selected agent automatically.",
       prereq: "Prerequisites",
-      prereqBody: "Node.js 20 or newer and an MCP-compatible client such as Claude Code or Cursor.",
-      initLabel: "STEP 1 · INITIALIZE THE LOCAL HUB",
-      initTitle: "Create the database and example cards.",
-      initBody: "This command creates the SQLite schema and loads 20 example Context Cards. The first local-embedding run may download a model.",
-      tokenLabel: "STEP 1 · CREATE AN API TOKEN",
-      tokenTitle: "Sign in and create a token for your agent.",
-      tokenBody: "Open Token settings, create a token, and copy it immediately. The plaintext token is shown only once.",
-      tokenButton: "Open token settings",
-      connectLabel: "STEP 2 · CONNECT YOUR AGENT",
-      claudeHelp: "Save this as .mcp.json in the root of your Claude Code project.",
-      cursorHelp: "Save this as .cursor/mcp.json in the project or ~/.cursor/mcp.json globally.",
-      hostedHelp: "Replace cxh_YOUR_TOKEN with the token created in Context Hub.",
+      prereqBody: "Node.js 20 or newer and at least one supported agent installed.",
+      tokenLabel: "STEP 1 · CHOOSE YOUR AGENT",
+      tokenTitle: "Run the matching connect command.",
+      tokenBody: "A browser window opens for GitHub sign-in. After approval, the CLI stores the token securely and updates the agent's global MCP configuration.",
+      connectLabel: "STEP 2 · CONNECT",
+      agentHelp: {
+        claude: "Registers the hosted HTTP MCP server in Claude Code user scope.",
+        codex: "Registers the server with Codex CLI and configures its bearer-token environment variable.",
+        cursor: "Adds Context Hub to ~/.cursor/mcp.json while preserving your existing servers.",
+        antigravity: "Adds Context Hub to ~/.gemini/config/mcp_config.json, shared by Antigravity, its IDE, and CLI.",
+      },
       verifyLabel: "STEP 3 · VERIFY THE CONNECTION",
-      verifyBody: "Restart your MCP client if needed, confirm the seven Context Hub tools appear, then ask:",
+      verifyBody: "Restart or refresh your agent if needed, confirm the seven Context Hub tools appear, then ask:",
       verifyPrompt: "Search Context Hub for a verified fix similar to this error before debugging it from scratch.",
-      localNote: "Set HUB_DB_PATH to an absolute shared path when multiple local agents should use the same database.",
+      connectNote: "The command connects to https://claudexhub.fly.dev/api/mcp. No JSON editing or local database setup is required.",
     },
     guide: {
       kicker: "USAGE GUIDE",
@@ -240,10 +203,10 @@ then run the listed verification steps."`,
       eyebrow: "AI 코딩 에이전트를 위한 공유 메모리",
       titleA: "한 번 해결한 문제를",
       titleB: "다시 풀지 마세요.",
-      body: "Claude Code와 Cursor 같은 MCP 클라이언트가 팀의 검증된 해결책을 검색하고, 필요한 컨텍스트만 적용하고, 새로운 해결책을 다음 에이전트를 위해 저장합니다.",
+      body: "Claude Code, Codex, Cursor, Antigravity가 팀의 검증된 해결책을 검색하고, 필요한 컨텍스트만 적용하고, 새로운 해결책을 다음 에이전트를 위해 저장합니다.",
       start: "3분 만에 시작하기",
       github: "GitHub에서 보기",
-      proof: ["로컬 우선", "민감 정보 자동 제거", "사람의 게시 승인"],
+      proof: ["호스팅 MCP", "민감 정보 자동 제거", "사람의 게시 승인"],
       prompt: "프로덕션에서만 OAuth 쿠키가 사라져",
       searching: "검증된 해결책을 검색하는 중...",
       result: "리버스 프록시 환경에서는 trust proxy와 secure cookie 설정을 함께 확인하세요.",
@@ -254,29 +217,24 @@ then run the listed verification steps."`,
     metrics: ["MCP 도구", "민감 정보 검사", "키워드 + 의미 검색", "공개 Context Card"],
     quick: {
       kicker: "빠른 시작",
-      title: "로컬 또는 호스팅 방식을 선택하고 한 번만 연결하세요.",
-      body: "내 컴퓨터에서 비공개 허브를 실행하거나 API 토큰으로 배포된 MCP 엔드포인트에 바로 연결할 수 있습니다.",
-      local: "로컬",
-      hosted: "호스팅",
-      localDesc: "개인 사용과 비공개 저장소에 적합합니다. 데이터는 로컬 SQLite에 저장됩니다.",
-      hostedDesc: "여러 기기에서 배포된 Hub를 사용할 때 적합합니다. Context Hub API 토큰이 필요합니다.",
+      title: "명령어 한 줄로 에이전트를 연결하세요.",
+      body: "브라우저에서 한 번 로그인하면 CLI가 호스팅 API 토큰을 만들고 선택한 에이전트에 Context Hub를 자동 등록합니다.",
       prereq: "준비 사항",
-      prereqBody: "Node.js 20 이상과 Claude Code 또는 Cursor 같은 MCP 지원 클라이언트가 필요합니다.",
-      initLabel: "STEP 1 · 로컬 허브 초기화",
-      initTitle: "데이터베이스와 예제 카드를 만듭니다.",
-      initBody: "SQLite 스키마와 예제 Context Card 20개를 생성합니다. 로컬 임베딩 첫 실행 시 모델을 내려받을 수 있습니다.",
-      tokenLabel: "STEP 1 · API 토큰 생성",
-      tokenTitle: "로그인 후 에이전트용 토큰을 만듭니다.",
-      tokenBody: "토큰 설정에서 새 토큰을 만든 뒤 즉시 복사하세요. 평문 토큰은 생성할 때 한 번만 표시됩니다.",
-      tokenButton: "토큰 설정 열기",
-      connectLabel: "STEP 2 · 에이전트 연결",
-      claudeHelp: "Claude Code 프로젝트 루트의 .mcp.json으로 저장하세요.",
-      cursorHelp: "프로젝트의 .cursor/mcp.json 또는 전역 ~/.cursor/mcp.json으로 저장하세요.",
-      hostedHelp: "cxh_YOUR_TOKEN을 Context Hub에서 발급받은 토큰으로 바꾸세요.",
+      prereqBody: "Node.js 20 이상과 지원되는 에이전트 중 하나가 설치되어 있어야 합니다.",
+      tokenLabel: "STEP 1 · 에이전트 선택",
+      tokenTitle: "에이전트에 맞는 연결 명령어를 실행하세요.",
+      tokenBody: "GitHub 로그인을 위한 브라우저가 열립니다. 승인하면 CLI가 토큰을 안전하게 저장하고 에이전트의 전역 MCP 설정을 갱신합니다.",
+      connectLabel: "STEP 2 · 연결",
+      agentHelp: {
+        claude: "Claude Code 사용자 범위에 호스팅 HTTP MCP 서버를 등록합니다.",
+        codex: "Codex CLI에 서버를 등록하고 bearer token 환경 변수를 설정합니다.",
+        cursor: "기존 서버를 보존하면서 ~/.cursor/mcp.json에 Context Hub를 추가합니다.",
+        antigravity: "Antigravity, IDE, CLI가 공유하는 ~/.gemini/config/mcp_config.json에 Context Hub를 추가합니다.",
+      },
       verifyLabel: "STEP 3 · 연결 확인",
-      verifyBody: "필요하면 MCP 클라이언트를 재시작하고 Context Hub 도구 7개가 보이는지 확인한 다음 이렇게 요청하세요.",
+      verifyBody: "필요하면 에이전트를 재시작하거나 새로고침하고 Context Hub 도구 7개가 보이는지 확인한 다음 이렇게 요청하세요.",
       verifyPrompt: "이 오류를 처음부터 디버깅하기 전에 Context Hub에서 비슷한 검증 사례를 먼저 찾아줘.",
-      localNote: "여러 로컬 에이전트가 같은 DB를 사용하려면 HUB_DB_PATH를 공유 절대 경로로 지정하세요.",
+      connectNote: "이 명령은 https://claudexhub.fly.dev/api/mcp에 연결합니다. JSON 편집이나 로컬 DB 설정은 필요 없습니다.",
     },
     guide: {
       kicker: "사용 가이드",
@@ -464,55 +422,31 @@ export function CopyBlock({
 
 function SetupPanel({ locale }: { locale: Locale }) {
   const [agent, setAgent] = useState<Agent>("claude");
-  const [connection, setConnection] = useState<Connection>("local");
   const t = copy[locale].quick;
-  const config = connection === "local" ? localConfigs[agent] : hostedConfig;
 
   return (
     <div className="quickstart-shell">
-      <aside className="quickstart-steps">
-        <button className={connection === "local" ? "active" : ""} type="button" onClick={() => setConnection("local")}>
-          <span>1</span><div><b>{t.local}</b><small>{t.localDesc}</small></div>
-        </button>
-        <button className={connection === "hosted" ? "active" : ""} type="button" onClick={() => setConnection("hosted")}>
-          <span>2</span><div><b>{t.hosted}</b><small>{t.hostedDesc}</small></div>
-        </button>
-      </aside>
       <div className="quickstart-content">
         <div className="prerequisite">
           <b>{t.prereq}</b>
           <span>{t.prereqBody}</span>
         </div>
 
-        {connection === "local" ? (
-          <>
-            <div className="step-label">{t.initLabel}</div>
-            <h3>{t.initTitle}</h3>
-            <p>{t.initBody}</p>
-            <CopyBlock code="npx -y ai-agent-context-hub context-hub-cli init" language="terminal" locale={locale} />
-            <div className="quick-note"><span>i</span><p>{t.localNote}</p></div>
-          </>
-        ) : (
-          <>
-            <div className="step-label">{t.tokenLabel}</div>
-            <h3>{t.tokenTitle}</h3>
-            <p>{t.tokenBody}</p>
-            <Link className="docs-button secondary token-button" href="/settings/tokens">
-              {t.tokenButton} <ArrowIcon />
-            </Link>
-          </>
-        )}
+        <div className="step-label">{t.tokenLabel}</div>
+        <h3>{t.tokenTitle}</h3>
+        <p>{t.tokenBody}</p>
+        <div className="tab-list" role="tablist" aria-label={locale === "en" ? "Choose agent" : "에이전트 선택"}>
+          <button className={agent === "claude" ? "active" : ""} type="button" onClick={() => setAgent("claude")}>Claude Code</button>
+          <button className={agent === "codex" ? "active" : ""} type="button" onClick={() => setAgent("codex")}>Codex</button>
+          <button className={agent === "cursor" ? "active" : ""} type="button" onClick={() => setAgent("cursor")}>Cursor</button>
+          <button className={agent === "antigravity" ? "active" : ""} type="button" onClick={() => setAgent("antigravity")}>Antigravity</button>
+        </div>
+        <p className="tab-help">{t.agentHelp[agent]}</p>
 
         <div className="step-divider" />
         <div className="step-label">{t.connectLabel}</div>
-        <div className="tab-list" role="tablist" aria-label={locale === "en" ? "Choose agent" : "에이전트 선택"}>
-          <button className={agent === "claude" ? "active" : ""} type="button" onClick={() => setAgent("claude")}>Claude Code</button>
-          <button className={agent === "cursor" ? "active" : ""} type="button" onClick={() => setAgent("cursor")}>Cursor</button>
-        </div>
-        <p className="tab-help">
-          {connection === "hosted" ? t.hostedHelp : agent === "claude" ? t.claudeHelp : t.cursorHelp}
-        </p>
-        <CopyBlock code={config} locale={locale} />
+        <CopyBlock code={connectCommands[agent]} language="terminal" locale={locale} />
+        <div className="quick-note"><span>i</span><p>{t.connectNote}</p></div>
 
         <div className="step-divider" />
         <div className="step-label">{t.verifyLabel}</div>

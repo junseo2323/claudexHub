@@ -987,7 +987,7 @@ th {
 
 .quickstart-shell {
   display: grid;
-  grid-template-columns: 245px 1fr;
+  grid-template-columns: 1fr;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 15px;
@@ -1183,6 +1183,7 @@ th {
 
 .tab-list {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: 15px;
   padding: 4px;
@@ -1191,7 +1192,7 @@ th {
 }
 
 .tab-list button {
-  flex: 1;
+  flex: 1 1 140px;
   padding: 9px 12px;
   border: 0;
   border-radius: 7px;
