@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, isAdmin } from "../lib/auth";
-import { getHealth, getStats, getRateLimitCount } from "../lib/claudexhub";
+import { getHealth, getStats, getRateLimitCount, getLlmStatus } from "../lib/claudexhub";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,6 +17,7 @@ export default async function StatusPage() {
   const health = getHealth();
   const stats = getStats();
   const rateLimitWindows = getRateLimitCount();
+  const llm = getLlmStatus();
 
   return (
     <>
@@ -29,6 +30,7 @@ export default async function StatusPage() {
         <Tile value={health.ok ? "OK" : "DOWN"} label={`DB (${health.db})`} />
         <Tile value={health.cards.toLocaleString()} label="Cards" />
         <Tile value={health.embeddingProvider} label="Embeddings" />
+        <Tile value={llm.configured ? llm.provider : "none"} label={`LLM judge${llm.model ? ` (${llm.model})` : ""}`} />
         <Tile value={`${health.uptimeSeconds}s`} label="Uptime" />
         <Tile value={rateLimitWindows} label="Active rate-limit windows" />
       </div>

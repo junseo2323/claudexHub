@@ -1,5 +1,5 @@
 # Web app (Next.js) container. Bundles the reused domain layer + MCP code.
-FROM node:20-bookworm-slim AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
 # Build tools for the native modules (better-sqlite3, sqlite-vec).

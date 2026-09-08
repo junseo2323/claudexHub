@@ -181,3 +181,39 @@ CREATE TABLE IF NOT EXISTS rate_limits (
   window_start INTEGER NOT NULL,
   count INTEGER NOT NULL
 );
+
+-- Card reviews: an independent judge (LLM or heuristic) checks that a card's
+-- fix addresses its problem and is verifiable. The latest verdict/score is
+-- also denormalized onto context_cards (review_verdict / review_score).
+CREATE TABLE IF NOT EXISTS card_reviews (
+  id TEXT PRIMARY KEY,
+  card_id TEXT NOT NULL REFERENCES context_cards(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL,     -- heuristic | anthropic | openai
+  model TEXT,
+  verdict TEXT NOT NULL,      -- pass | needs_work | fail
+  score REAL NOT NULL,        -- 0-100
+  summary TEXT NOT NULL,
+  issues TEXT,                -- JSON ReviewIssue[]
+  suggestions TEXT,           -- JSON ReviewSuggestion[]
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_reviews_card ON card_reviews(card_id, created_at);
+
+-- Same-problem groups: near-duplicate cards clustered by embedding similarity
+-- (optionally LLM-confirmed). One canonical card represents the group in search.
+CREATE TABLE IF NOT EXISTS card_clusters (
+  id TEXT PRIMARY KEY,
+  canonical_card_id TEXT NOT NULL REFERENCES context_cards(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS card_cluster_members (
+  card_id TEXT PRIMARY KEY REFERENCES context_cards(id) ON DELETE CASCADE,
+  cluster_id TEXT NOT NULL REFERENCES card_clusters(id) ON DELETE CASCADE,
+  similarity REAL NOT NULL DEFAULT 1,  -- similarity to the card it was matched against
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_cluster_members_cluster ON card_cluster_members(cluster_id);

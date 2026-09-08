@@ -22,7 +22,17 @@ import {
   removeCardRelationForUser,
   saveSearchForUser,
   deleteSavedSearch,
+  reviewCardForUser,
+  setGroupCanonicalForUser,
+  leaveGroupForUser,
+  type PublishResult,
 } from "./claudexhub";
+
+/** Where a blocked publish sends the user back to, with the reason. */
+function publishRedirect(cardId: string, result: PublishResult): string {
+  if (result.ok) return `/cards/${cardId}`;
+  return `/drafts/${cardId}?error=${result.reason}`;
+}
 
 function lines(value: FormDataEntryValue | null): string[] {
   return String(value ?? "")
@@ -65,8 +75,40 @@ export async function publishDraftAction(formData: FormData) {
   if (!user) redirect("/login");
 
   const cardId = String(formData.get("cardId") ?? "");
-  const result = await publishDraftForUser(cardId, user.id);
-  if (!result.ok) redirect(`/drafts/${cardId}?error=secrets`);
+  const overrideReview = String(formData.get("overrideReview") ?? "") === "1";
+  const result = await publishDraftForUser(cardId, user.id, { overrideReview });
+  redirect(publishRedirect(cardId, result));
+}
+
+/** Run the AI/heuristic review on a card the user authored (draft or published). */
+export async function reviewCardAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const cardId = str(formData, "cardId");
+  const back = str(formData, "back") || `/drafts/${cardId}`;
+  const heuristicOnly = str(formData, "mode") === "heuristic";
+  try {
+    await reviewCardForUser(cardId, user.id, { heuristicOnly });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    redirect(`${back}${back.includes("?") ? "&" : "?"}review_error=${encodeURIComponent(message.slice(0, 200))}`);
+  }
+  redirect(`${back}${back.includes("?") ? "&" : "?"}reviewed=1`);
+}
+
+export async function setGroupCanonicalAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const cardId = str(formData, "cardId");
+  setGroupCanonicalForUser(cardId, user.id);
+  redirect(`/cards/${cardId}`);
+}
+
+export async function leaveGroupAction(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const cardId = str(formData, "cardId");
+  leaveGroupForUser(cardId, user.id);
   redirect(`/cards/${cardId}`);
 }
 
@@ -107,9 +149,9 @@ export async function publishToTeamAction(formData: FormData) {
   const cardId = str(formData, "cardId");
   const teamId = str(formData, "teamId");
   if (!teamId) redirect(`/drafts/${cardId}`);
-  const result = await publishDraftToTeam(cardId, user.id, teamId);
-  if (!result.ok) redirect(`/drafts/${cardId}?error=secrets`);
-  redirect(`/cards/${cardId}`);
+  const overrideReview = str(formData, "overrideReview") === "1";
+  const result = await publishDraftToTeam(cardId, user.id, teamId, { overrideReview });
+  redirect(publishRedirect(cardId, result));
 }
 
 export async function recordFeedbackAction(formData: FormData) {

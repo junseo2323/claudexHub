@@ -1,6 +1,6 @@
 {
   "name": "claudexhub",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "ClaudexHub — shared engineering memory for AI coding agents",
   "type": "module",
   "license": "MIT",
@@ -34,7 +34,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "tsx src/index.ts",
@@ -54,9 +54,10 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@huggingface/transformers": "^4.2.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^13.0.3",
     "commander": "^13.1.0",
     "dotenv": "^16.4.7",
     "nanoid": "^5.0.9",

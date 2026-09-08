@@ -9,10 +9,10 @@ export const runtime = "nodejs";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const me = await getCurrentUser();
-  const { next: rawNext } = await searchParams;
+  const { next: rawNext, error } = await searchParams;
   const next = safeNext(rawNext);
   if (me) redirect(next ?? "/profile");
   const demoUsers = devLoginEnabled ? listDemoUsers() : [];
@@ -24,6 +24,10 @@ export default async function LoginPage({
     <>
       <h1>Sign in</h1>
       <p className="subtle">Sign in to view your profile, contributions, and reputation.</p>
+      {error === "not_allowed" && (
+        <div className="banner">This hub is private: your GitHub account is not on its allow-list.</div>
+      )}
+      {error && error !== "not_allowed" && <div className="banner">Sign-in failed ({error}). Please try again.</div>}
 
       <div className="login-options">
         {githubConfigured && (

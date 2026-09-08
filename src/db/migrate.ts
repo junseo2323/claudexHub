@@ -38,6 +38,14 @@ function migrateColumns(db: DB): void {
   if (!hasColumn(db, "source_evidence", "url")) {
     db.exec("ALTER TABLE source_evidence ADD COLUMN url TEXT");
   }
+  // Latest AI/heuristic review verdict, denormalized onto the card so scoring,
+  // search briefs, and the publish gate don't need a join.
+  if (!hasColumn(db, "context_cards", "review_verdict")) {
+    db.exec("ALTER TABLE context_cards ADD COLUMN review_verdict TEXT");
+  }
+  if (!hasColumn(db, "context_cards", "review_score")) {
+    db.exec("ALTER TABLE context_cards ADD COLUMN review_score REAL");
+  }
 }
 
 // Allow `npm run migrate` (tsx). Matching the source filename keeps this false

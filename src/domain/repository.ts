@@ -44,6 +44,8 @@ interface CardRow {
   created_at: string;
   updated_at: string;
   last_verified_at: string | null;
+  review_verdict: string | null;
+  review_score: number | null;
 }
 
 function rowToCard(row: CardRow): ContextCard {
@@ -68,6 +70,8 @@ function rowToCard(row: CardRow): ContextCard {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     lastVerifiedAt: row.last_verified_at ?? undefined,
+    reviewVerdict: (row.review_verdict as ContextCard["reviewVerdict"]) ?? undefined,
+    reviewScore: row.review_score ?? undefined,
   };
 }
 
@@ -329,6 +333,8 @@ export class Repository {
         created_at: card.createdAt,
         updated_at: card.updatedAt,
         last_verified_at: card.lastVerifiedAt ?? null,
+        review_verdict: card.reviewVerdict ?? null,
+        review_score: card.reviewScore ?? null,
       };
 
       if (mode === "insert") {
@@ -337,11 +343,13 @@ export class Repository {
             `INSERT INTO context_cards
              (id,title,problem,environment,symptoms,likely_causes,failed_attempts,verified_fix,
               verification,agent_hint,source_links,visibility,status,confidence_score,
-              estimated_tokens_saved,successful_reuse_count,failed_reuse_count,created_at,updated_at,last_verified_at)
+              estimated_tokens_saved,successful_reuse_count,failed_reuse_count,created_at,updated_at,last_verified_at,
+              review_verdict,review_score)
              VALUES
              (@id,@title,@problem,@environment,@symptoms,@likely_causes,@failed_attempts,@verified_fix,
               @verification,@agent_hint,@source_links,@visibility,@status,@confidence_score,
-              @estimated_tokens_saved,@successful_reuse_count,@failed_reuse_count,@created_at,@updated_at,@last_verified_at)`,
+              @estimated_tokens_saved,@successful_reuse_count,@failed_reuse_count,@created_at,@updated_at,@last_verified_at,
+              @review_verdict,@review_score)`,
           )
           .run(params);
       } else {
@@ -353,7 +361,8 @@ export class Repository {
               verification=@verification, agent_hint=@agent_hint, source_links=@source_links,
               visibility=@visibility, status=@status, confidence_score=@confidence_score,
               estimated_tokens_saved=@estimated_tokens_saved, successful_reuse_count=@successful_reuse_count,
-              failed_reuse_count=@failed_reuse_count, updated_at=@updated_at, last_verified_at=@last_verified_at
+              failed_reuse_count=@failed_reuse_count, updated_at=@updated_at, last_verified_at=@last_verified_at,
+              review_verdict=@review_verdict, review_score=@review_score
              WHERE id=@id`,
           )
           .run(params);

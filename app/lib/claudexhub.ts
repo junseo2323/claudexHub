@@ -37,6 +37,10 @@ import { needsReverification, daysSinceVerified, DEFAULT_REVERIFY_DAYS } from ".
 import { healthCheck, type HealthStatus } from "../../src/domain/health.js";
 import { checkRuntimeConfig, type ConfigWarning } from "../../src/runtime-checks.js";
 import { UserRepository, type User } from "../../src/domain/users.js";
+import { ReviewService, type CardReview } from "../../src/domain/review.js";
+import { ClusterService, type CardCluster } from "../../src/domain/clusters.js";
+import { buildBrief } from "../../src/domain/brief.js";
+import { getLlmJudge, llmStatus, type LlmStatus } from "../../src/llm/provider.js";
 import type { ContextCard, CardBrief, SearchInput } from "../../src/domain/types.js";
 
 /** Statuses the read-only site is allowed to surface. */
@@ -232,21 +236,68 @@ export function listDraftsForUser(userId: string): ContextCard[] {
     .filter((c) => DRAFT_STATUSES.has(c.status) && users.getCardAuthorId(c.id) === userId);
 }
 
-/** Re-scan a draft for secrets; on a clean scan, publish it publicly. */
+export type PublishResult =
+  | { ok: true; card: ContextCard; review?: CardReview; cluster?: CardCluster }
+  | { ok: false; reason: "secrets"; redaction: RedactionReport }
+  | { ok: false; reason: "review"; review: CardReview }
+  | { ok: false; reason: "review_error"; message: string };
+
+export interface PublishOptions {
+  /** Publish despite a "fail" review verdict (explicit human decision). */
+  overrideReview?: boolean;
+}
+
+/**
+ * Shared publish gate: secrets re-scan → review (run one if the card has none)
+ * → block on "fail" unless overridden. On success flips the status, then
+ * groups the card with near-duplicates.
+ */
+async function publishGated(
+  card: ContextCard,
+  visibility: "public" | "team",
+  opts: PublishOptions,
+  afterPublish?: () => void,
+): Promise<PublishResult> {
+  const { report } = redactCard(card);
+  if (report.findingsCount > 0) return { ok: false, reason: "secrets", redaction: report };
+
+  const reviews = new ReviewService(db());
+  let review = reviews.latest(card.id);
+  if (!review) {
+    try {
+      review = (await reviews.review(card.id)).review;
+    } catch (err) {
+      return { ok: false, reason: "review_error", message: err instanceof Error ? err.message : String(err) };
+    }
+  }
+  if (review.verdict === "fail" && !opts.overrideReview) return { ok: false, reason: "review", review };
+
+  const updated = await new Repository(db()).updateCard(card.id, {
+    status: "published",
+    visibility,
+    lastVerifiedAt: card.verification.length > 0 ? new Date().toISOString() : card.lastVerifiedAt,
+  });
+  afterPublish?.();
+
+  let cluster: CardCluster | undefined;
+  try {
+    const judge = await getLlmJudge();
+    cluster = (await new ClusterService(db()).assign(updated.id, { judge }))?.cluster;
+  } catch {
+    // Grouping is best-effort metadata; never fail a publish over it.
+  }
+  return { ok: true, card: updated, review, cluster };
+}
+
+/** Publish a draft publicly after the secrets + review gates. */
 export async function publishDraftForUser(
   cardId: string,
   userId: string,
-): Promise<{ ok: true; card: ContextCard } | { ok: false; redaction: RedactionReport }> {
+  opts: PublishOptions = {},
+): Promise<PublishResult> {
   const card = getDraftForUser(cardId, userId);
   if (!card) throw new Error("draft_not_found");
-  const { report } = redactCard(card);
-  if (report.findingsCount > 0) return { ok: false, redaction: report };
-  const updated = await new Repository(db()).updateCard(cardId, {
-    status: "published",
-    visibility: "public",
-    lastVerifiedAt: card.verification.length > 0 ? new Date().toISOString() : card.lastVerifiedAt,
-  });
-  return { ok: true, card: updated };
+  return publishGated(card, "public", opts);
 }
 
 /** Publish a draft with team visibility (only the team's members can see it). */
@@ -254,19 +305,122 @@ export async function publishDraftToTeam(
   cardId: string,
   userId: string,
   teamId: string,
-): Promise<{ ok: true; card: ContextCard } | { ok: false; redaction: RedactionReport }> {
+  opts: PublishOptions = {},
+): Promise<PublishResult> {
   const card = getDraftForUser(cardId, userId);
   if (!card) throw new Error("draft_not_found");
   if (!new TeamRepository(db()).isMember(teamId, userId)) throw new Error("not_team_member");
-  const { report } = redactCard(card);
-  if (report.findingsCount > 0) return { ok: false, redaction: report };
-  const updated = await new Repository(db()).updateCard(cardId, {
-    status: "published",
-    visibility: "team",
-    lastVerifiedAt: card.verification.length > 0 ? new Date().toISOString() : card.lastVerifiedAt,
-  });
-  new TeamRepository(db()).setCardTeam(cardId, teamId);
-  return { ok: true, card: updated };
+  return publishGated(card, "team", opts, () => new TeamRepository(db()).setCardTeam(cardId, teamId));
+}
+
+// --- Reviews (independent verification of the knowledge itself) ---
+
+export function getLatestReview(cardId: string): CardReview | undefined {
+  return new ReviewService(db()).latest(cardId);
+}
+
+/** Which judge (if any) backs AI reviews — for the UI. */
+export function getLlmStatus(): LlmStatus {
+  return llmStatus();
+}
+
+/** Run (or re-run) the review on a card the user authored. */
+export async function reviewCardForUser(
+  cardId: string,
+  userId: string,
+  opts: { heuristicOnly?: boolean } = {},
+): Promise<CardReview> {
+  if (!getEditableCardForUser(cardId, userId)) throw new Error("not_editable");
+  const { review } = await new ReviewService(db()).review(cardId, opts.heuristicOnly ? { judge: null } : {});
+  return review;
+}
+
+// --- Same-problem groups (near-duplicate cards) ---
+
+export type SimilarBrief = CardBrief & { similarity: number };
+
+/** Nearest existing (non-draft) cards the viewer may see — for "already solved?" hints. */
+export function getSimilarCards(cardId: string, viewerId?: string, limit = 3): SimilarBrief[] {
+  const repo = new Repository(db());
+  return new ClusterService(db())
+    .findSimilar(cardId, { limit: limit + 3, minSimilarity: 0.6 })
+    .map((s) => {
+      const c = repo.getCard(s.cardId);
+      if (!c || !canViewCard(c, viewerId)) return undefined;
+      return { ...buildBrief(c, c.confidenceScore), similarity: Math.round(s.similarity * 100) / 100 };
+    })
+    .filter((x): x is SimilarBrief => !!x)
+    .slice(0, limit);
+}
+
+export interface CardGroupMember {
+  card: ContextCard;
+  similarity: number;
+  canonical: boolean;
+}
+
+export interface CardGroup {
+  cluster: CardCluster;
+  members: CardGroupMember[];
+}
+
+/** The group a card belongs to, restricted to members the viewer may see. */
+export function getCardGroup(cardId: string, viewerId?: string): CardGroup | undefined {
+  const clusters = new ClusterService(db());
+  const cluster = clusters.clusterOf(cardId);
+  if (!cluster) return undefined;
+  const repo = new Repository(db());
+  const members = clusters
+    .members(cluster.id)
+    .map((m) => {
+      const card = repo.getCard(m.cardId);
+      if (!card || (card.id !== cardId && !canViewCard(card, viewerId))) return undefined;
+      return { card, similarity: m.similarity, canonical: card.id === cluster.canonicalCardId };
+    })
+    .filter((x): x is CardGroupMember => !!x)
+    .sort((a, b) => Number(b.canonical) - Number(a.canonical) || b.card.confidenceScore - a.card.confidenceScore);
+  return { cluster, members };
+}
+
+/** Every group with ≥2 members visible to the viewer, largest first. */
+export function listGroups(viewerId?: string): CardGroup[] {
+  const clusters = new ClusterService(db());
+  const repo = new Repository(db());
+  return clusters
+    .listClusters()
+    .map(({ cluster, members }) => ({
+      cluster,
+      members: members
+        .map((m) => {
+          const card = repo.getCard(m.cardId);
+          if (!card || !canViewCard(card, viewerId)) return undefined;
+          return { card, similarity: m.similarity, canonical: card.id === cluster.canonicalCardId };
+        })
+        .filter((x): x is CardGroupMember => !!x)
+        .sort((a, b) => Number(b.canonical) - Number(a.canonical) || b.card.confidenceScore - a.card.confidenceScore),
+    }))
+    .filter((g) => g.members.length >= 2);
+}
+
+/** Make an authored card the representative of its group. */
+export function setGroupCanonicalForUser(cardId: string, userId: string): boolean {
+  if (!getEditableCardForUser(cardId, userId)) return false;
+  const clusters = new ClusterService(db());
+  const cluster = clusters.clusterOf(cardId);
+  return !!cluster && clusters.setCanonical(cluster.id, cardId);
+}
+
+/** Take an authored card out of its group (it stays published on its own). */
+export function leaveGroupForUser(cardId: string, userId: string): boolean {
+  if (!getEditableCardForUser(cardId, userId)) return false;
+  new ClusterService(db()).removeMember(cardId);
+  return true;
+}
+
+/** Rebuild every group from scratch (admin/maintenance). */
+export async function rebuildGroups(): Promise<{ clusters: number; grouped: number }> {
+  const judge = await getLlmJudge();
+  return new ClusterService(db()).recluster({ judge });
 }
 
 export function scanCard(card: ContextCard): RedactionReport {
@@ -537,6 +691,9 @@ export function listTeamCards(teamId: string, viewerId?: string): ContextCard[] 
 }
 
 export type {
+  CardReview,
+  CardCluster,
+  LlmStatus,
   HubStats,
   ContextCard,
   CardBrief,

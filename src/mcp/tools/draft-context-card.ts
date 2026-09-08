@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Repository } from "../../domain/repository.js";
+import type { ClusterService } from "../../domain/clusters.js";
 import { redactCard, redact, mergeReports, reportFromFindings } from "../../domain/redaction.js";
 import { buildBrief } from "../../domain/brief.js";
 import { extractDraft } from "../../domain/extraction.js";
@@ -29,6 +30,7 @@ const inputObject = z.object(draftContextCardSchema);
 export function makeDraftContextCardHandler(
   repo: Repository,
   assignAuthor?: (cardId: string) => void,
+  clusters?: ClusterService,
 ) {
   return async (args: z.infer<typeof inputObject>) => {
     const problem = args.problem_summary ?? args.content ?? "";
@@ -91,6 +93,20 @@ export function makeDraftContextCardHandler(
       });
     }
 
+    // Near-duplicate check: if the hub already has this problem, say so up
+    // front so the agent (and human) can reuse or extend instead of re-adding.
+    const similarExisting = clusters
+      ? clusters
+          .findSimilar(created.id, { limit: 3, minSimilarity: 0.6 })
+          .map((s) => {
+            const other = repo.getCard(s.cardId);
+            return other
+              ? { similarity: Math.round(s.similarity * 100) / 100, ...buildBrief(other, other.confidenceScore) }
+              : undefined;
+          })
+          .filter((x): x is NonNullable<typeof x> => !!x)
+      : [];
+
     return {
       content: [
         {
@@ -101,6 +117,12 @@ export function makeDraftContextCardHandler(
             redaction_report: report,
             extraction_report: extracted.report,
             card_brief: buildBrief(created, created.confidenceScore),
+            ...(similarExisting.length
+              ? {
+                  similar_existing: similarExisting,
+                  note: "Existing cards look like the same problem. Prefer updating/linking them over publishing a duplicate; if you publish, it will be grouped with them.",
+                }
+              : {}),
           }),
         },
       ],
