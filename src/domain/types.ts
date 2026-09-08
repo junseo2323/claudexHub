@@ -17,6 +17,8 @@ export type AgentName =
   | "antigravity"
   | "other";
 export type UsageOutcome = "success" | "partial" | "failed";
+/** Outcome of a card review (LLM judge or heuristic fallback). */
+export type ReviewVerdict = "pass" | "needs_work" | "fail";
 
 export interface AgentUsage {
   id: string;
@@ -60,6 +62,9 @@ export interface ContextCard {
   createdAt: string;
   updatedAt: string;
   lastVerifiedAt?: string;
+  /** Latest review verdict/score (see src/domain/review.ts); unset = unreviewed. */
+  reviewVerdict?: ReviewVerdict;
+  reviewScore?: number;
 }
 
 export interface SourceEvidence {
@@ -83,6 +88,10 @@ export interface CardBrief {
   match_reason: string;
   fix_summary: string[];
   risk: "low" | "medium" | "high";
+  /** Latest review verdict, when the card has been reviewed. */
+  review?: ReviewVerdict;
+  /** Present when the card belongs to a same-problem group. */
+  cluster?: { id: string; size: number; canonical_id: string };
 }
 
 export interface SearchInput {

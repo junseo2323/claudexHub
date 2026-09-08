@@ -47,6 +47,16 @@ export async function GET(req: NextRequest) {
     avatar_url?: string;
   };
 
+  // Personal/team deployments: ALLOWED_LOGINS (comma-separated GitHub logins)
+  // restricts who may sign in at all. Unset = open sign-in (public hub mode).
+  const allowed = (process.env.ALLOWED_LOGINS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  if (allowed.length > 0 && !allowed.includes(String(gh.login ?? "").toLowerCase())) {
+    return NextResponse.redirect(`${origin}/login?error=not_allowed`);
+  }
+
   const user = upsertGithubUser({
     githubId: String(gh.id),
     login: gh.login,

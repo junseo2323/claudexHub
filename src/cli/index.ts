@@ -21,6 +21,9 @@ import { evaluateSelfRetrieval } from "../domain/eval.js";
 import { seed } from "../seed/seed.js";
 import { config } from "../config.js";
 import { extractDraft } from "../domain/extraction.js";
+import { ReviewService } from "../domain/review.js";
+import { ClusterService } from "../domain/clusters.js";
+import { getLlmJudge } from "../llm/provider.js";
 import { redact, redactCard, mergeReports, reportFromFindings } from "../domain/redaction.js";
 import type { CardInput } from "../domain/card-schema.js";
 import {
@@ -43,7 +46,7 @@ const program = new Command();
 program
   .name("claudexhub")
   .description("CLI for ClaudexHub")
-  .version("0.3.0");
+  .version("0.4.0");
 
 program
   .command("init")
@@ -335,6 +338,85 @@ program
   .action(async () => {
     const n = await repo().reindexAll();
     console.log(`Reindexed ${n} cards (embeddings=${config.embeddingProvider})`);
+  });
+
+program
+  .command("review <id>")
+  .description("Review a card (heuristic checks + the configured LLM judge) and store the verdict")
+  .option("--heuristic-only", "Skip the LLM judge even when one is configured")
+  .option("--json", "Output raw JSON")
+  .action(async (id: string, opts: { heuristicOnly?: boolean; json?: boolean }) => {
+    const db = getDb();
+    migrate(db);
+    const { review, card } = await new ReviewService(db).review(id, opts.heuristicOnly ? { judge: null } : {});
+    if (opts.json) {
+      console.log(JSON.stringify({ review, confidence: card.confidenceScore }, null, 2));
+      return;
+    }
+    console.log(`${review.verdict.toUpperCase()} (${review.score}/100) via ${review.provider}${review.model ? ` ${review.model}` : ""}`);
+    console.log(review.summary);
+    for (const i of review.issues) console.log(`  [${i.severity}] ${i.field ? `${i.field}: ` : ""}${i.message}`);
+    for (const sg of review.suggestions) console.log(`  → ${sg.field}: ${sg.value.split("\n")[0]}`);
+    console.log(`confidence now ${card.confidenceScore}`);
+  });
+
+program
+  .command("similar <id>")
+  .description("List the most similar non-draft cards to a card (by embedding)")
+  .option("--limit <n>", "Max results", "5")
+  .option("--min <sim>", "Minimum cosine similarity (0-1)", "0.5")
+  .action((id: string, opts: { limit: string; min: string }) => {
+    const db = getDb();
+    migrate(db);
+    const r = repo();
+    const sims = new ClusterService(db).findSimilar(id, { limit: Number(opts.limit), minSimilarity: Number(opts.min) });
+    if (sims.length === 0) {
+      console.log("No similar cards.");
+      return;
+    }
+    for (const s of sims) {
+      const c = r.getCard(s.cardId);
+      console.log(`${s.similarity.toFixed(3)}  ${s.cardId}  ${c?.title ?? ""}`);
+    }
+  });
+
+program
+  .command("clusters")
+  .description("List same-problem groups (near-duplicate cards)")
+  .option("--json", "Output raw JSON")
+  .action((opts: { json?: boolean }) => {
+    const db = getDb();
+    migrate(db);
+    const r = repo();
+    const groups = new ClusterService(db).listClusters();
+    if (opts.json) {
+      console.log(JSON.stringify(groups, null, 2));
+      return;
+    }
+    if (groups.length === 0) {
+      console.log("No groups yet. Run `recluster` to build them from existing cards.");
+      return;
+    }
+    for (const g of groups) {
+      const canon = r.getCard(g.cluster.canonicalCardId);
+      console.log(`${g.cluster.id}  (${g.members.length})  ★ ${canon?.title ?? g.cluster.canonicalCardId}`);
+      for (const m of g.members) {
+        if (m.cardId === g.cluster.canonicalCardId) continue;
+        console.log(`    ${m.similarity.toFixed(2)}  ${m.cardId}  ${r.getCard(m.cardId)?.title ?? ""}`);
+      }
+    }
+  });
+
+program
+  .command("recluster")
+  .description("Rebuild every same-problem group from scratch (uses the LLM judge for borderline pairs when configured)")
+  .option("--no-llm", "Group by similarity threshold only")
+  .action(async (opts: { llm: boolean }) => {
+    const db = getDb();
+    migrate(db);
+    const judge = opts.llm === false ? undefined : await getLlmJudge();
+    const res = await new ClusterService(db).recluster({ judge });
+    console.log(`Built ${res.clusters} group(s) covering ${res.grouped} card(s)${judge ? ` (judge=${judge.name} ${judge.model})` : ""}`);
   });
 
 /** Where the CLI persists tokens, keyed by hub origin. */

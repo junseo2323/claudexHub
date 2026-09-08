@@ -53,4 +53,21 @@ describe("checkRuntimeConfig", () => {
     } as NodeJS.ProcessEnv);
     expect(w).toEqual([]);
   });
+
+  it("errors when an LLM provider is selected without its API key", () => {
+    const base = {
+      NODE_ENV: "production",
+      AUTH_SECRET: "a-very-long-random-secret-value",
+      GITHUB_CLIENT_ID: "id",
+      GITHUB_CLIENT_SECRET: "secret",
+      EMBEDDING_PROVIDER: "local",
+    };
+    const anthropic = checkRuntimeConfig({ ...base, LLM_PROVIDER: "anthropic" } as NodeJS.ProcessEnv);
+    expect(anthropic.some((x) => x.level === "error" && /ANTHROPIC_API_KEY/.test(x.message))).toBe(true);
+    const openai = checkRuntimeConfig({ ...base, LLM_PROVIDER: "openai" } as NodeJS.ProcessEnv);
+    expect(openai.some((x) => x.level === "error" && /OPENAI_API_KEY/.test(x.message))).toBe(true);
+    // Keyed providers and "none" are clean.
+    expect(checkRuntimeConfig({ ...base, LLM_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "k" } as NodeJS.ProcessEnv)).toEqual([]);
+    expect(checkRuntimeConfig({ ...base, LLM_PROVIDER: "none" } as NodeJS.ProcessEnv)).toEqual([]);
+  });
 });

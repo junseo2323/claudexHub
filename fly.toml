@@ -17,6 +17,11 @@ primary_region = 'nrt'
   # Public origin for OAuth redirect/callback URLs (behind Fly's proxy
   # req.nextUrl.origin resolves to localhost). Must match the GitHub OAuth app.
   APP_ORIGIN = 'https://claudexhub.fly.dev'
+  # Personal hub: only this GitHub account may sign in (comma-separate to add
+  # teammates). API keys for the LLM judge go in `fly secrets`, never here:
+  #   fly secrets set ANTHROPIC_API_KEY=sk-ant-...   (Claude judge, auto-selected)
+  ALLOWED_LOGINS = 'junseo2323'
+  ADMIN_LOGINS = 'junseo2323'
 
 [[mounts]]
   source = 'hub_data'

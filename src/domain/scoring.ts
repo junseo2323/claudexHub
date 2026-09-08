@@ -30,8 +30,12 @@ export interface ConfidenceBreakdown {
   verification: number;
   recency: number;
   reuse: number;
+  /** Credit from a passing / needs-work review (0 when unreviewed). */
+  review: number;
   failedPenalty: number;
   stalePenalty: number;
+  /** Penalty when the latest review verdict is "fail". */
+  reviewPenalty: number;
   /** Final clamped score, 0-100. */
   total: number;
 }
@@ -61,9 +65,30 @@ export function confidenceBreakdown(card: ContextCard): ConfidenceBreakdown {
   const failedPenalty = Math.min(card.failedReuseCount * 0.05, 0.3);
   const stalePenalty = card.status === "deprecated" ? 0.6 : card.status === "stale" ? 0.4 : 0;
 
-  const raw = sourceQuality + verification + recency + reuse - failedPenalty - stalePenalty;
+  // Review: an independent judge (LLM, or the heuristic fallback) checked that
+  // the fix addresses the problem and is verifiable. A pass is worth up to
+  // 0.15 scaled by its score; a fail is a hard penalty so the card sinks.
+  const scoreFactor = Math.min(Math.max((card.reviewScore ?? 0) / 100, 0), 1);
+  let review = 0;
+  let reviewPenalty = 0;
+  if (card.reviewVerdict === "pass") review = 0.15 * Math.max(scoreFactor, 0.5);
+  else if (card.reviewVerdict === "needs_work") review = 0.05 * Math.max(scoreFactor, 0.5);
+  else if (card.reviewVerdict === "fail") reviewPenalty = 0.3;
+
+  const raw =
+    sourceQuality + verification + recency + reuse + review - failedPenalty - stalePenalty - reviewPenalty;
   const total = Math.round(Math.min(Math.max(raw, 0), 1) * 100);
-  return { sourceQuality, verification, recency, reuse, failedPenalty, stalePenalty, total };
+  return {
+    sourceQuality,
+    verification,
+    recency,
+    reuse,
+    review,
+    failedPenalty,
+    stalePenalty,
+    reviewPenalty,
+    total,
+  };
 }
 
 /**

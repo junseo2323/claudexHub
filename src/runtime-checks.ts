@@ -33,5 +33,13 @@ export function checkRuntimeConfig(env: NodeJS.ProcessEnv = process.env): Config
       message: "EMBEDDING_PROVIDER=noop yields non-semantic search — use 'local' or 'openai' in production.",
     });
   }
+  // Running without an LLM judge is a valid configuration (heuristic review
+  // still gates publishing), so only an explicit provider missing its key is
+  // flagged — that would make every review call fail at runtime.
+  if (env.LLM_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY) {
+    warnings.push({ level: "error", message: "LLM_PROVIDER=anthropic but ANTHROPIC_API_KEY is unset." });
+  } else if (env.LLM_PROVIDER === "openai" && !env.OPENAI_API_KEY) {
+    warnings.push({ level: "error", message: "LLM_PROVIDER=openai but OPENAI_API_KEY is unset." });
+  }
   return warnings;
 }

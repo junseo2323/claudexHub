@@ -16,6 +16,10 @@ embedding model.
 | `OPENAI_API_KEY` | if openai | Required when `EMBEDDING_PROVIDER=openai`. |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | optional | Enables GitHub OAuth; otherwise the demo login is used. |
 | `AUTH_ALLOW_DEV` | optional | `1` to keep demo login enabled alongside GitHub OAuth. |
+| `ALLOWED_LOGINS` | optional | Comma-separated GitHub logins allowed to sign in (personal/team hub). Unset = open sign-in. |
+| `ANTHROPIC_API_KEY` | optional | Enables Claude as the card-review / duplicate-confirmation judge (`claude-opus-5`). |
+| `LLM_PROVIDER` / `LLM_MODEL` | optional | `anthropic` \| `openai` \| `none` (inferred from keys when unset); model override. `openai` reuses `OPENAI_API_KEY`. |
+| `CLUSTER_SIMILARITY_THRESHOLD` | optional | Cosine similarity for automatic same-problem grouping (default `0.82`). |
 
 `GET /api/health` returns a readiness snapshot (DB status, card count, embedding
 provider, uptime) and any config warnings. It responds `503` when the DB is

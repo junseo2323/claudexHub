@@ -10,7 +10,7 @@ Solve a problem once. Turn it into a trusted Context Card.<br>
 Let Claude Code, Codex, Cursor, and Antigravity find it next time.
 
 [![CI](https://github.com/junseo2323/claudexHub/actions/workflows/ci.yml/badge.svg)](https://github.com/junseo2323/claudexHub/actions/workflows/ci.yml)
-[![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![MCP](https://img.shields.io/badge/MCP-server-6C5CE7)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
@@ -41,7 +41,9 @@ problem solved → draft captured → human approved → fix reused → trust im
 
 ## Highlights
 
-- **Hosted or local MCP** — use seven tools over authenticated HTTP or local stdio.
+- **Hosted or local MCP** — use eight tools over authenticated HTTP or local stdio.
+- **Reviewed knowledge** — every card gets an independent review before it can be published: deterministic checks (secrets, prompt injection, dangerous advice, vague/unverifiable fixes) plus Claude or GPT as a judge when an API key is set. A `fail` verdict blocks publishing unless a human overrides.
+- **Same-problem grouping** — near-duplicate cards are grouped automatically (embedding similarity, LLM-confirmed for borderline pairs); search shows one result per problem and agents are warned before drafting a duplicate.
 - **Agent-efficient retrieval** — search returns briefs first; full cards load only on demand.
 - **Shared memory with provenance** — attach repository, files, commits, issues, and raw evidence.
 - **Safe publishing workflow** — drafts remain private until approval and a second secret scan.
@@ -58,9 +60,10 @@ problem solved → draft captured → human approved → fix reused → trust im
 | --- | --- |
 | `search_context` | Hybrid search → **brief** results only. Filters: `stack`, `version`, `error`, `files` (path hints feed matching), `repo` (boosts same-repo evidence), `min_confidence`. |
 | `get_context_card` | Fetch one card; `mode` = `brief` \| `full` \| `agent_json` (compact, agent-optimized). |
-| `draft_context_card` | Create a redacted **draft** from a solved problem; auto-extracts stacks, symptoms, failed attempts, fix, commit sha, and GitHub commit/PR/issue source links from raw logs/diffs (heuristic, no LLM). |
-| `submit_for_approval` | Move an AI draft to **approved** (pending publish) and return a redaction report for the human to preview. |
-| `publish_context_card` | Publish a draft/approved card after `approve=true`; re-scans for secrets and blocks if any remain. |
+| `draft_context_card` | Create a redacted **draft** from a solved problem; auto-extracts stacks, symptoms, failed attempts, fix, commit sha, and GitHub commit/PR/issue source links from raw logs/diffs (heuristic, no LLM). Returns `similar_existing` when the hub already has this problem. |
+| `submit_for_approval` | Move an AI draft to **approved** (pending publish) and return a redaction report **plus an independent review** (verdict, issues, suggestions) for the human to preview. |
+| `review_context_card` | Review a card's knowledge itself: does the fix address the problem, is it verifiable and safe, is anything leaked? Deterministic checks + the configured LLM judge. Returns `pass` / `needs_work` / `fail`, a score, issues, and field suggestions. Re-run after edits. |
+| `publish_context_card` | Publish a draft/approved card after `approve=true`; re-scans for secrets, reviews the card if unreviewed, blocks on a `fail` verdict unless `override_review=true`, then groups it with near-duplicates. |
 | `record_feedback` | Record reuse outcome (success/partial/failed); updates reuse counts, accumulated tokens saved, and confidence. |
 | `mark_stale` | Mark a card stale when its fix is outdated/wrong; stale cards drop out of search. |
 
@@ -71,7 +74,7 @@ API token and registers the hosted MCP server automatically:
 
 ```bash
 npx -y \
-  --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz \
+  --package https://github.com/junseo2323/claudexHub/releases/download/v0.4.0/claudexhub-0.4.0.tgz \
   claudexhub connect codex
 ```
 
@@ -100,6 +103,24 @@ Set `EMBEDDING_PROVIDER` in `.env`:
 
 Changing the provider or `EMBED_DIM` requires `npm run reindex`.
 
+### LLM judge (card review + duplicate confirmation)
+
+Set an API key and ClaudexHub uses that model to review every card before it
+is published, and to confirm borderline same-problem groupings:
+
+- `ANTHROPIC_API_KEY` → Claude (`claude-opus-5` by default), or
+- `OPENAI_API_KEY` + `LLM_PROVIDER=openai` → GPT (`gpt-5` by default).
+- `LLM_MODEL` overrides the model; `LLM_PROVIDER=none` disables the judge.
+
+Without a key, the deterministic checks still run (missing/vague fix, no
+verification steps, leaked secrets, prompt-injection phrasing, dangerous
+advice), so nothing is published unreviewed — the verdict is just less
+informed. Grouping thresholds: `CLUSTER_SIMILARITY_THRESHOLD` (default 0.82,
+auto-group) and `CLUSTER_LLM_CONFIRM_MIN` (default 0.68, ask the judge).
+
+For a personal or team deployment, set `ALLOWED_LOGINS` (comma-separated
+GitHub logins) so only those accounts can sign in.
+
 ## Dev CLI
 
 ```bash
@@ -111,6 +132,10 @@ npm run cli -- create --json ./card.json
 npm run cli -- publish <card_id> --visibility public
 npm run cli -- feedback <card_id> --outcome success --before 12000 --after 2000
 npm run cli -- stale <card_id> --reason "Next.js 16 changed defaults" --versions "Next.js 16"
+npm run cli -- review <card_id>       # independent review (heuristic + LLM judge); --heuristic-only to skip the model
+npm run cli -- similar <card_id>      # nearest existing cards by embedding
+npm run cli -- clusters               # same-problem groups
+npm run cli -- recluster              # rebuild groups from scratch (--no-llm for similarity only)
 npm run cli -- stats                 # trust + reuse statistics (add --json for raw)
 npm run cli -- eval --k 5            # search-quality self-retrieval eval (hit@k, MRR)
 npm run cli -- reindex
@@ -149,6 +174,9 @@ A Next.js (App Router) UI in `app/` over the same SQLite store and domain layer:
 - **Cards** (`/cards`, `/cards/[id]`) — browse cards (filter by stack/status) and view full detail (with author). Signed-in users can record reuse feedback (worked / partly / didn't), feeding reuse counts, confidence, and the author's reputation. Authors can **link cards** (supersedes / duplicate / related) to build a knowledge graph (Phase 7).
 - **Search** (`/search`) — the same hybrid keyword + semantic search as the agent tool, with stack and min-confidence filters. Signed-in users can **save searches** and re-run them later (Phase 7).
 - **Leaderboard** (`/leaderboard`) — contributors ranked by reputation.
+- **Groups** (`/clusters`) — same-problem groups (near-duplicate cards). Each
+  card page shows its group, its latest review, and lets the author re-run the
+  review, pick the representative card, or leave the group.
 - **Insights** (`/insights`) — confidence calibration (each band's observed reuse
   success rate vs. its score), cards needing re-verification, and an 8-week
   activity timeline of cards created + reuse events (Phase 4/6 telemetry).
@@ -258,7 +286,7 @@ the plaintext is shown once at creation. The OpenAPI 3.0 spec is served at
 
 ### Hosted MCP endpoint
 
-Beyond the local stdio server, the same 7 MCP tools are available over HTTP
+Beyond the local stdio server, the same 8 MCP tools are available over HTTP
 (Streamable HTTP, stateless JSON) at `POST /api/mcp`, authenticated with a
 bearer token. This lets a remote agent connect without running the server
 locally:
@@ -295,6 +323,8 @@ config error (e.g. a default `AUTH_SECRET`) is present.
   state this to mitigate prompt injection.
 - Drafts are private and unsearchable until a human publishes them.
 - Redaction runs on draft creation **and** again as a publish-time gate.
+- Every card is reviewed before publish (deterministic checks + optional LLM
+  judge); a `fail` verdict blocks publishing unless a human explicitly overrides.
 - The web app sets baseline security headers and validates production config
   (see `src/runtime-checks.ts`).
 - Auth + API routes are rate-limited per IP via a shared SQLite-backed store

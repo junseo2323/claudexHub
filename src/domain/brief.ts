@@ -65,5 +65,6 @@ export function buildBrief(
     match_reason: buildMatchReason(signals) + provenNote(card),
     fix_summary: summarizeFix(card.verifiedFix),
     risk: deriveRisk(card, confidence),
+    ...(card.reviewVerdict ? { review: card.reviewVerdict } : {}),
   };
 }

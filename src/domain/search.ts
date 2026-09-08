@@ -4,6 +4,7 @@ import { getEmbeddingProvider } from "../embeddings/provider.js";
 import type { CardBrief, SearchInput, ContextCard } from "./types.js";
 import { Repository } from "./repository.js";
 import { buildBrief, type MatchSignals } from "./brief.js";
+import { ClusterService } from "./clusters.js";
 
 /** Statuses an agent is allowed to retrieve via search. */
 const SEARCHABLE_STATUSES = new Set(["published", "approved"]);
@@ -63,9 +64,11 @@ interface Candidate {
 
 export class SearchService {
   private readonly repo: Repository;
+  private readonly clusters: ClusterService;
 
   constructor(private readonly db: DB) {
     this.repo = new Repository(db);
+    this.clusters = new ClusterService(db);
   }
 
   async search(input: SearchInput): Promise<CardBrief[]> {
@@ -173,6 +176,34 @@ export class SearchService {
     }
 
     results.sort((a, b) => b.confidence - a.confidence);
-    return results.slice(0, limit);
+    return collapseClusters(this.clusters, results).slice(0, limit);
   }
+}
+
+/**
+ * Same-problem groups surface once: the best-ranked member represents the
+ * group and carries its size + canonical id, so an agent reads one card
+ * instead of N near-duplicates (and can fetch the canonical if it differs).
+ */
+function collapseClusters(clusters: ClusterService, ranked: CardBrief[]): CardBrief[] {
+  const seen = new Set<string>();
+  const out: CardBrief[] = [];
+  for (const brief of ranked) {
+    const cluster = clusters.clusterOf(brief.id);
+    if (!cluster) {
+      out.push(brief);
+      continue;
+    }
+    if (seen.has(cluster.id)) continue;
+    seen.add(cluster.id);
+    out.push({
+      ...brief,
+      cluster: {
+        id: cluster.id,
+        size: clusters.members(cluster.id).length,
+        canonical_id: cluster.canonicalCardId,
+      },
+    });
+  }
+  return out;
 }

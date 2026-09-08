@@ -7,6 +7,8 @@ import {
   relatedCards,
   cardFreshness,
   getCardRelations,
+  getLatestReview,
+  getCardGroup,
   type RelationType,
 } from "../../lib/claudexhub";
 import { getCurrentUser } from "../../lib/auth";
@@ -15,8 +17,11 @@ import {
   recordFeedbackAction,
   addRelationAction,
   removeRelationAction,
+  reviewCardAction,
+  setGroupCanonicalAction,
+  leaveGroupAction,
 } from "../../lib/actions";
-import { Avatar, EnvChips, RiskBadge, riskFromConfidence, BriefRow } from "../../components";
+import { Avatar, EnvChips, RiskBadge, riskFromConfidence, BriefRow, ReviewBadge, ReviewPanel } from "../../components";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -46,10 +51,10 @@ export default async function CardDetail({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ feedback?: string; relerror?: string }>;
+  searchParams: Promise<{ feedback?: string; relerror?: string; reviewed?: string; review_error?: string }>;
 }) {
   const { id } = await params;
-  const { feedback, relerror } = await searchParams;
+  const { feedback, relerror, reviewed, review_error: reviewError } = await searchParams;
   const me = await getCurrentUser();
   const card = getViewableCard(id, me?.id);
   if (!card) notFound();
@@ -60,7 +65,10 @@ export default async function CardDetail({
   const stale = card.status === "stale" || card.status === "deprecated";
   const fresh = cardFreshness(card);
   const relations = getCardRelations(card.id, me?.id);
-  const related = await relatedCards(card.id, me?.id, 3);
+  const review = getLatestReview(card.id);
+  const group = getCardGroup(card.id, me?.id);
+  const groupIds = new Set(group?.members.map((m) => m.card.id) ?? []);
+  const related = (await relatedCards(card.id, me?.id, 6)).filter((b) => !groupIds.has(b.id)).slice(0, 3);
 
   return (
     <>
@@ -83,9 +91,22 @@ export default async function CardDetail({
           </Link>
         </div>
       )}
+      {review?.verdict === "fail" && (
+        <div className="banner">
+          ⚠ The latest independent review <strong>failed</strong> this card — read the issues below before applying it.
+        </div>
+      )}
+      {reviewed === "1" && <div className="chip good" style={{ marginBottom: 12 }}>✓ Review updated</div>}
+      {reviewError && <div className="banner">Review failed: {reviewError}</div>}
       <div className="meta" style={{ marginTop: 10 }}>
         <span className="conf">confidence {card.confidenceScore}</span>
         <RiskBadge risk={riskFromConfidence(card.confidenceScore)} />
+        {card.reviewVerdict && <ReviewBadge verdict={card.reviewVerdict} score={card.reviewScore} />}
+        {group && group.members.length > 1 && (
+          <Link href="/clusters" className="chip" title="Near-duplicate cards grouped as one problem">
+            ⧉ {group.members.length} cards, same problem
+          </Link>
+        )}
         {card.visibility === "team" && <span className="chip">🔒 team</span>}
         <EnvChips env={card.environment} />
         {card.successfulReuseCount + card.failedReuseCount > 0 && (
@@ -138,6 +159,69 @@ export default async function CardDetail({
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      <div className="section panel">
+        <h3 style={{ marginTop: 0 }}>Independent review</h3>
+        {review ? (
+          <ReviewPanel review={review} />
+        ) : (
+          <p className="subtle" style={{ margin: 0 }}>
+            This card has not been reviewed yet.
+          </p>
+        )}
+        {isOwner && (
+          <form action={reviewCardAction} style={{ marginTop: 12 }}>
+            <input type="hidden" name="cardId" value={card.id} />
+            <input type="hidden" name="back" value={`/cards/${card.id}`} />
+            <button type="submit" className="btn secondary">
+              {review ? "Re-run review" : "Run review"}
+            </button>
+          </form>
+        )}
+      </div>
+
+      {group && group.members.length > 1 && (
+        <div className="section panel">
+          <h3 style={{ marginTop: 0 }}>Same problem, {group.members.length} cards</h3>
+          <p className="subtle" style={{ marginTop: 0 }}>
+            These cards were grouped as near-duplicates. Search shows the group once; the ★ card is the representative.
+          </p>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+            {group.members.map((m) => (
+              <li key={m.card.id} className="relation-row">
+                <span className="chip">{m.canonical ? "★ representative" : `${Math.round(m.similarity * 100)}% similar`}</span>
+                {m.card.id === card.id ? (
+                  <strong>{m.card.title} (this card)</strong>
+                ) : (
+                  <Link href={`/cards/${m.card.id}`}>{m.card.title}</Link>
+                )}
+                <span className="subtle" style={{ fontSize: 12 }}>
+                  confidence {m.card.confidenceScore}
+                  {m.card.status !== "published" ? ` · ${m.card.status}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {isOwner && (
+            <div className="feedback-buttons" style={{ marginTop: 12 }}>
+              {group.cluster.canonicalCardId !== card.id && (
+                <form action={setGroupCanonicalAction}>
+                  <input type="hidden" name="cardId" value={card.id} />
+                  <button type="submit" className="btn secondary">
+                    Make this the representative
+                  </button>
+                </form>
+              )}
+              <form action={leaveGroupAction}>
+                <input type="hidden" name="cardId" value={card.id} />
+                <button type="submit" className="btn secondary">
+                  Not the same problem — leave group
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       )}
 

@@ -432,7 +432,7 @@ export function activityTimeline(db: DB, weeks = 8, now: Date = new Date()): Act
   }
   const bucketOf = (iso: string): number => {
     const t = new Date(iso).getTime();
-    if (Number.isNaN(t) || t < start || t >= end) return -1;
+    if (Number.isNaN(t) || t < start || t > end) return -1;
     return Math.min(weeks - 1, Math.floor((t - start) / WEEK));
   };
 

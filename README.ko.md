@@ -30,6 +30,12 @@ ClaudexHub는 GitHub 로그인, API 토큰, 원격 MCP 엔드포인트와 함께
   리더보드/통계, 카드 탐색·상세 보기·검색·작성 기능을 제공합니다.
 - **개발용 CLI**와 **시드 데이터**(예제 카드 20개)
 
+## 검증과 묶기
+
+- **게시 전 검증** — 모든 카드는 게시되기 전에 독립 검증을 거칩니다. 결정론적 검사(해결책 누락·모호함, 검증 절차 없음, 시크릿 잔류, 프롬프트 인젝션 문구, 위험한 조언)에 더해 `ANTHROPIC_API_KEY` 또는 `OPENAI_API_KEY`(+`LLM_PROVIDER=openai`)가 설정되어 있으면 Claude/GPT가 판정자로 참여합니다. `fail` 판정은 사람이 명시적으로 override 하지 않는 한 게시를 막습니다.
+- **같은 문제 묶기** — 임베딩 유사도가 높은 카드는 자동으로 한 그룹으로 묶이고(경계 구간은 LLM 판정자가 확인), 검색 결과에는 그룹당 하나만 대표 카드로 나옵니다. 초안을 만들 때 이미 비슷한 카드가 있으면 `similar_existing`으로 알려 줍니다. 웹의 `/clusters`에서 그룹을 볼 수 있고 카드 페이지에서 대표 카드 변경·그룹 이탈이 가능합니다.
+- **개인/팀 전용 배포** — `ALLOWED_LOGINS`에 허용할 GitHub 로그인을 콤마로 적으면 그 계정만 로그인할 수 있습니다.
+
 ## MCP 도구
 
 | 도구 | 용도 |
@@ -38,6 +44,7 @@ ClaudexHub는 GitHub 로그인, API 토큰, 원격 MCP 엔드포인트와 함께
 | `get_context_card` | 카드 하나를 가져옵니다. `mode`는 `brief`, `full`, `agent_json`(간결한 에이전트 최적화 형식)을 지원합니다. |
 | `draft_context_card` | 해결된 문제로부터 민감 정보가 제거된 **초안**을 만듭니다. 원시 로그와 diff에서 기술 스택, 증상, 실패한 시도, 해결책, 커밋 SHA, GitHub 커밋/PR/이슈 링크를 자동 추출합니다. LLM 없이 휴리스틱으로 동작합니다. |
 | `submit_for_approval` | AI 초안을 **승인됨** 상태로 옮기고, 사람이 미리 확인할 수 있는 민감 정보 제거 보고서를 반환합니다. |
+| `review_context_card` | 카드의 지식 자체를 독립적으로 검증합니다. 해결책이 문제를 실제로 해결하는지, 검증 가능하고 안전한지, 시크릿이 남아 있지 않은지를 결정론적 검사와 설정된 LLM 판정자(Claude 또는 GPT)로 확인하고 `pass` / `needs_work` / `fail` 판정, 점수, 이슈, 필드별 제안을 돌려줍니다. 수정 후 다시 실행할 수 있습니다. |
 | `publish_context_card` | `approve=true`로 초안 또는 승인된 카드를 게시합니다. 비밀 정보를 다시 검사하고, 남아 있으면 게시를 차단합니다. |
 | `record_feedback` | 재사용 결과(`success`, `partial`, `failed`)를 기록하고 재사용 횟수, 누적 절약 토큰, 신뢰도를 갱신합니다. |
 | `mark_stale` | 해결책이 오래되었거나 잘못된 경우 카드를 오래된 상태로 표시합니다. 오래된 카드는 검색 결과에서 제외됩니다. |
@@ -48,10 +55,10 @@ ClaudexHub는 GitHub 로그인, API 토큰, 원격 MCP 엔드포인트와 함께
 호스팅 API 토큰을 만든 뒤 ClaudexHub를 자동 등록합니다.
 
 ```bash
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect claude
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect codex
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect cursor
-npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.3.0/claudexhub-0.3.0.tgz claudexhub connect antigravity
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.4.0/claudexhub-0.4.0.tgz claudexhub connect claude
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.4.0/claudexhub-0.4.0.tgz claudexhub connect codex
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.4.0/claudexhub-0.4.0.tgz claudexhub connect cursor
+npx -y --package https://github.com/junseo2323/claudexHub/releases/download/v0.4.0/claudexhub-0.4.0.tgz claudexhub connect antigravity
 ```
 
 지원되는 에이전트를 모두 설정하려면 `connect all`을 사용하세요. JSON 편집이나
@@ -239,7 +246,7 @@ curl -H "Authorization: Bearer clx_…" \
 
 ### 호스팅 MCP 엔드포인트
 
-로컬 stdio 서버 외에도 동일한 7개 MCP 도구를 HTTP(Streamable HTTP, 상태 비저장
+로컬 stdio 서버 외에도 동일한 8개 MCP 도구를 HTTP(Streamable HTTP, 상태 비저장
 JSON) 방식으로 `POST /api/mcp`에서 제공합니다. Bearer 토큰으로 인증하며, 원격
 에이전트가 서버를 로컬에서 실행하지 않고 연결할 수 있습니다.
 
